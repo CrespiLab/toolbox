@@ -1,5 +1,5 @@
 # tools
-**April 29<sup>th</sup>, 2025**
+**October 7<sup>th</sup>, 2025**
 
 Package containing miscellaneous useful scripts:
 - QuickPlotAbs: use the command `quickplotabs`
@@ -8,18 +8,18 @@ Package containing miscellaneous useful scripts:
 # Installation
 ## Anaconda Powershell Prompt
 ```
-conda create -n tools
-conda activate tools
+conda create -n toolbox
+conda activate toolbox
 conda install git pip
-git clone https://github.com/CrespiLab/tools
-cd tools
+git clone https://github.com/CrespiLab/toolbox
+cd toolbox
 pip install -e .
 ```
 
 # User Instructions
 Make sure to activate the environment.
 ```
-conda activate tools
+conda activate toolbox
 ```
 
 ## QuickPlotAbs
