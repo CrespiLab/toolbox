@@ -1,0 +1,275 @@
+#!/usr/bin/perl
+
+# The original script authored by A.M. Genaev (NIOCH SO RAS) 
+# http://limor1.nioch.nsc.ru/quant/program/
+# The script translated by Crespi group
+
+$debug = 0;
+
+# To add an option, add a chunk to $expr,
+# consisting of four fields separated by |:
+# option | atom indices | comment | formula for calculation |
+# In the calculation formula:
+# Coordinates of the original atoms should be denoted by two letters:
+# the first is x,y,z; the second is a Latin letter, e.g., xi yA zn;
+# each of the second letters must appear in the "atom indices" field.
+# Temporary variables - as in Perl ($Rij)
+# The last expression should yield the final result and must not be assigned
+# - b c - e - - - i j k l m n - - - - - - u v - x y z
+
+$expr = q(
+r | i-j | distance i-j |
+sqrt ((xi-xj)**2+(yi-yj)**2+(zi-zj)**2);
+|
+q |i-j-k| distance between a point i and a line j-k|
+sqrt ((((xi-xj)*(yk-yj)-(yi-yj)*(xk-xj))**2+
+       ((yi-yj)*(zk-zj)-(zi-zj)*(yk-yj))**2+
+       ((zi-zj)*(xk-xj)-(xi-xj)*(zk-zj))**2)/
+      ((xk-xj)**2+(yk-yj)**2+(zk-zj)**2));
+|
+t |i-j-k-l| distance between a point i anda plane j-k-l|
+$A = (yk-yj)*(zl-zj)-(zk-zj)*(yl-yj);
+$B = (zk-zj)*(xl-xj)-(xk-xj)*(zl-zj);
+$C = (xk-xj)*(yl-yj)-(yk-yj)*(xl-xj);
+$D = xj*yk*zl+xk*yl*zj+xl*yj*zk-xl*yk*zj-xk*yj*zl-xj*yl*zk;
+(xi*$A+yi*$B+zi*$C-$D)/sqrt($A**2+$B**2+$C**2);
+|
+p |i-j-k| projection of O-k to i-j (O - the middle of i-j)|
+$Rij = (xi-xj)**2+(yi-yj)**2+(zi-zj)**2;
+$xo = (xi+xj)/2; $yo = (yi+yj)/2; $zo = (zi+zj)/2; 
+$Rok = ($xo-xk)**2+($yo-yk)**2+($zo-zk)**2;
+$ttt = (xi-xj)*($xo-xk)+(yi-yj)*($yo-yk)+(zi-zj)*($zo-zk);
+$Rok*$ttt/sqrt($Rij*$Rok);
+|
+o |i-j-k-l| distance between middle points of line segments i-j and k-l|
+(sqrt((xi+xj-xk-xl)**2+(yi+yj-yk-yl)**2+(zi+zj-zk-zl)**2))/2;
+|
+s |i-j-k-l| shortest distance between lines i-j and k-l|
+$ax=xj-xi; $ay=yj-yi; $az=zj-zi; 
+$bx=xl-xk; $by=yl-yk; $bz=zl-zk; 
+$A=sqrt($ax**2+$ay**2+$az**2);
+$B=sqrt($bx**2+$by**2+$bz**2);
+$sing1=sqrt(1-(($ax*$bx+$ay*$by+$az*$bz)/$A/$B)**2);
+if ($sing1==0) {
+  sqrt(($ay*(zi-zk)-$az*(yi-yk))**2+
+       ($az*(xi-xk)-$ax*(zi-zk))**2+
+       ($ax*(yi-yk)-$ay*(xi-xk))**2)/$A;
+}
+else {
+  ((xi-xk)*$ay*$bz+(yi-yk)*$az*$bx+(zi-zk)*$ax*$by-
+   (xi-xk)*$az*$by-(yi-yk)*$ax*$bz-(zi-zk)*$ay*$bx)/$A/$B/$sing1;
+}
+|
+a |i-j-k| valence angle i-j-k|
+rad2deg (acos (((xi-xj)*(xk-xj)+(yi-yj)*(yk-yj)+(zi-zj)*(zk-zj))/
+               sqrt(((xi-xj)**2+(yi-yj)**2+(zi-zj)**2)*
+                    ((xk-xj)**2+(yk-yj)**2+(zk-zj)**2))));
+|
+f |i-j-k-l| angle between lines i-j and k-l (0..90)|
+rad2deg (acos (abs((xi-xj)*(xk-xl)+(yi-yj)*(yk-yl)+(zi-zj)*(zk-zl))/
+               sqrt(((xi-xj)**2+(yi-yj)**2+(zi-zj)**2)*
+                    ((xl-xk)**2+(yl-yk)**2+(zl-zk)**2))));
+|
+g |i-j-k-l-m| angle between a line i-j and a plane k-l-m (0..90)|
+$ax=xj-xi; $ay=yj-yi; $az=zj-zi; 
+$A = (yl-yk)*(zm-zk)-(zl-zk)*(ym-yk);
+$B = (zl-zk)*(xm-xk)-(xl-xk)*(zm-zk);
+$C = (xl-xk)*(ym-yk)-(yl-yk)*(xm-xk);
+rad2deg (asin (abs($ax*$A+$ay*$B+$az*$C)/
+               sqrt(($ax**2+$ay**2+$az**2)*
+                    ($A**2+$B**2+$C**2))));
+|
+d |i-j-k-l| dihedral angle i-j-k-l (-180..180)|
+$A1 = (yj-yi)*(zk-zi)-(zj-zi)*(yk-yi);
+$B1 = (zj-zi)*(xk-xi)-(xj-xi)*(zk-zi);
+$C1 = (xj-xi)*(yk-yi)-(yj-yi)*(xk-xi);
+$A2 = (yk-yj)*(zl-zj)-(zk-zj)*(yl-yj);
+$B2 = (zk-zj)*(xl-xj)-(xk-xj)*(zl-zj);
+$C2 = (xk-xj)*(yl-yj)-(yk-yj)*(xl-xj);
+$Vec = ($B1*$C2-$C1*$B2)*(xk-xj)+
+       ($C1*$A2-$A1*$C2)*(yk-yj)+
+       ($A1*$B2-$B1*$A2)*(zk-zj);
+$sign = ($Vec>=0) ? 1 : -1;
+$sign*rad2deg(acos(($A1*$A2+$B1*$B2+$C1*$C2)/
+               sqrt(($A1**2+$B1**2+$C1**2)*
+                    ($A2**2+$B2**2+$C2**2))));
+|
+w |i-j-k-l-m-n| angle between planes i-j-k and l-m-n (0..90)|
+$A1 = (yj-yi)*(zk-zi)-(zj-zi)*(yk-yi);
+$B1 = (zj-zi)*(xk-xi)-(xj-xi)*(zk-zi);
+$C1 = (xj-xi)*(yk-yi)-(yj-yi)*(xk-xi);
+$A2 = (ym-yl)*(zn-zl)-(zm-zl)*(yn-yl);
+$B2 = (zm-zl)*(xn-xl)-(xm-xl)*(zn-zl);
+$C2 = (xm-xl)*(yn-yl)-(ym-yl)*(xn-xl);
+rad2deg (acos (abs($A1*$A2+$B1*$B2+$C1*$C2)/
+               sqrt(($A1**2+$B1**2+$C1**2)*
+                    ($A2**2+$B2**2+$C2**2))));
+|
+b |i-j-k-l| angle between a line l-k and a normal to a plane k-j-i 
+                 (in Priroda is a bend-1 4,i,j,k,l)|
+$ax=xk-xl; $ay=yk-yl; $az=zk-zl; 
+$A = (yj-yk)*(zi-zk)-(zj-zk)*(yi-yk);
+$B = (zj-zk)*(xi-xk)-(xj-xk)*(zi-zk);
+$C = (xj-xk)*(yi-yk)-(yj-yk)*(xi-xk);
+rad2deg (acos (($ax*$A+$ay*$B+$az*$C)/
+               sqrt(($ax**2+$ay**2+$az**2)*
+                    ($A**2+$B**2+$C**2))));
+|
+);
+
+@expr = split /\|/s, $expr;
+
+foreach (@expr) {
+  s/^\s*(\S+)\s*$/$1/;
+}
+
+for ($i=0; $expr[$i]=~/(\w)/; $i++) {
+  $string_opts .= ($i==0) ? ($1) : (":$1");
+  $Satoms{$1} = $expr[$i+1];
+  @_ = split /-/, $expr[$i+1]; $Natoms{$1} = scalar @_;
+  $description{$1} = $expr[$i+2];
+  $calculation{$1} = $expr[$i+3];
+  $i = $i+3;
+}
+
+if ($debug>=1) {
+  foreach $opt (keys %calculation) {
+    print "Опция: $opt\n";
+    print "Число атомов: $Natoms{$opt}, $Satoms{$opt}\n";
+    print "Описание: $description{$opt}\n";
+    print "Вычисление: $calculation{$opt}\n";
+  }
+}
+
+$string_opts .= ':hRPG';
+
+use Getopt::Std;
+getopts("$string_opts", \%opts);
+
+use Math::Trig;
+
+if ($opts{h}) {
+  $0 =~ s/^.*[\/\\]//;
+  print "
+Calculate some geometry parameters from cartesian coordinates
+given in molden format file(s)
+
+Usage: $0 geometric_parameters [options] [filename] [filenames] [> results]
+
+Dependencies: Perl, module Math::Trig, gnuplot for -P option
+
+filename - cartesian coordinates file in molden format
+           (http://www.cmbi.kun.nl/~schaft/molden/molden_format.html)
+Options:
+-h     help
+-R     measure angles in radians instead of degrees
+-P     draw graphs \"energy\" - \"geometrical parameter\" with gnuplot
+-G     prints a table \"energy\" - \"geometrical parameter\"
+Geometrical parameters: (i,j,... - atom numbers):\n";
+foreach (sort keys %Satoms) {
+  printf "-%s %-12s%s\n", $_ , $Satoms{$_}, $description{$_};
+}
+print "
+In case a few similar parameters are required:
+-r 'i-j j-k'
+\n";
+  exit;
+}
+
+undef @output;
+$count = 0;
+
+unless ($opts{P} || $opts{G}) {
+  $output[0] = sprintf "%-6s\t%-14s\t", 'Point', 'Energy';
+}
+
+while (<>) {
+  # 1-st string
+  if (/^\s*(\d+)\s*$/) {
+    $N = $1;
+    $count++;
+  }
+  else {
+    print "Not molden format of $inp_file";
+  }
+  # 2-nd string
+  $_ = <>;
+  ($energy) = /(-?\d+\.\d+)/;
+
+  print "Point $count  N=$N Energy $energy\n" if ($debug>=2);
+
+  for ($i=1;$i<=$N;$i++) {
+    $_ = <>;
+    ($atom[$i],$x[$i],$y[$i],$z[$i],undef) = split;
+    print "$atom[$i] $x[$i] $y[$i] $z[$i]\n" if ($debug>=3);
+  }
+
+  $output[$count] = sprintf "%-6u\t%-14s\t", "$count", "$energy";
+
+  foreach $option (sort keys %opts) {
+    $calculation{$option} =~ s/\b([xyz])(\w)\b/\$$1\[\$$2\]/g;
+    $calculation{$option} =~ s/\brad2deg\b//g if ($opts{R});
+
+    foreach $cur_opt (split /\s+/, $opts{$option}) {
+      @numbers = split /-/, $cur_opt;
+      @letters = split /-/, $Satoms{$option};
+      next if (scalar @numbers != scalar @letters);
+      foreach (@numbers) {
+        $ttt = shift @letters;
+        ${$ttt} = $_;
+      }
+      $atoms = "$atom[$numbers[0]]$numbers[0]";
+      shift @numbers;
+      foreach (@numbers) {
+        $atoms .= "-$atom[$_]$_"
+      }
+      unless ($opts{P} || $opts{G}) {
+        $output[0] .= sprintf ("%-14s\t", "$option".'_'."$atoms") if ($count==1);
+        $output[$count] .= sprintf "%-14f\t", eval $calculation{$option};
+      }
+      else {
+        $plot{$cur_opt}[0] = "$option $atoms\n" if ($count==1);
+        $plot{$cur_opt}[$count] = sprintf "%-14f\t%-14s\n", eval $calculation{$option},$energy;
+      }
+    }
+  }
+}
+
+unless (%plot) {
+  for (1..$count) {
+    $plot{'IRC'}[0] = "IRC\n" if ($_==1);
+    $plot{'IRC'}[$_] = "$output[$_]\n";
+  }
+}
+
+unless ($opts{P} || $opts{G}) {
+  foreach (@output) {print "$_\n"};
+}
+if ($opts{P}) {
+#    print "Type q in gnuplot window to quite\n";
+  foreach my $opt (sort keys %plot) {
+    $file = $plot{$opt}[0];
+    $file =~ s/\s/_/g;
+    chomp $file;
+    open GPF, ">$file";
+    foreach (1..$#{$plot{$opt}}) {
+      print GPF $plot{$opt}[$_];
+    }
+    close GPF;
+    open GP, "|-", 'gnuplot', '-persist' or die "Can't run gnuplot: $!\n";
+#    open GP, "| gnuplot -persist" or die "Can't run gnuplot: $!\n";
+    print GP "plot '$file' with linespoints\n";
+    close GP;
+    #unlink $file if $file;
+  }
+}
+if ($opts{G}) {
+  foreach my $opt (sort keys %plot) {
+    $file = $plot{$opt}[0];
+    chomp $file;
+    foreach (1..$#{$plot{$opt}}) {
+      print $plot{$opt}[$_];
+    }
+#    print "\n";
+  }
+}
