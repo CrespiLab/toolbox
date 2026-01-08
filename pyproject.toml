@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]                                                                               
 name = "CrespiTools"                                                                    
 version = "1.0.0"                                                                       
-description = "Tools"
+description = "Toolbox"
 license = "GPL-3.0-or-later"         							
 readme = "README.md"                                                                    
 requires-python = ">=3.10.8"
@@ -20,6 +20,7 @@ dependencies = [
   "scipy>=1.15.1",
   "numpy>=2.2.2",
   "pandas>=2.2.3",
+  "PyQt5",
   "matplotlib>=3.10.0"
 ]
 
@@ -40,16 +41,19 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/CrespiLab/tools"
+Homepage = "https://github.com/CrespiLab/toolbox"
 
 [project.scripts]
 quickplotabs = "QuickPlotAbs.cli:main"
 tddftplotter = "plotter_TDDFT.cli:main"
+spectrafitter_batch = "SpectraFitter.SpectraFitter_batch:main"
+spectrafitter_single = "SpectraFitter.SpectraFitter_single:main"
 
 [tool.setuptools]
 packages = [
    "QuickPlotAbs",
    "plotter_TDDFT",
-   "Robocopy_backup"
+   "Robocopy_backup",
+   "SpectraFitter"
 ]
 
