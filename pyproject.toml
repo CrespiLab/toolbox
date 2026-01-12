@@ -46,8 +46,8 @@ Homepage = "https://github.com/CrespiLab/toolbox"
 [project.scripts]
 quickplotabs = "QuickPlotAbs.cli:main"
 tddftplotter = "plotter_TDDFT.cli:main"
-spectrafitter_batch = "SpectraFitter.SpectraFitter_batch:main"
 spectrafitter_single = "SpectraFitter.SpectraFitter_single:main"
+spectrafitter = "SpectraFitter.SpectraFitter:main"
 
 [tool.setuptools]
 packages = [
