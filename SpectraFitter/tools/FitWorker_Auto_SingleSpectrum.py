@@ -5,7 +5,6 @@ Created on Thu Jul 17 16:35:11 2025
 @author: jorst136
 """
 from PyQt5.QtCore import QThread, pyqtSignal
-
 from SpectraFitter.tools.FitPekarianGaussianHybrid import residual_driven_peak_finder, iterative_pekaria_fit
 
 class FitWorker(QThread):

@@ -1,20 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Jul  4 11:11:55 2025
-
-@author: jorst136
 """
-
-import sys
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QSlider, QTextEdit
-)
-from PyQt5.QtCore import Qt
 import math
 from scipy.optimize import curve_fit
 from scipy.signal import find_peaks
@@ -87,7 +75,8 @@ def iterative_pekaria_fit(v, a, v_centers, k_max=20):
         maxfev=100000
     )
     
-    v_fit = np.linspace(min(v), max(v), 2000)
+    # v_fit = np.linspace(min(v), max(v), 2000)
+    v_fit = np.array(v)
     a_fit, components = hybrid_model_dynamic(v_fit, *popt)
     
     return popt, pcov, v_fit, a_fit, components
@@ -121,6 +110,7 @@ def residual_driven_peak_finder(v, a, max_peaks, residual_threshold, k_max,
         interp_fit = interp1d(v_fit, a_fit, kind='linear', bounds_error=False, fill_value="extrapolate")
         residuals = a - interp_fit(v)
         max_residual = np.max(np.abs(residuals))
+        # max_residual = np.max(residuals)
 
         if output_console:
             output_console.append(f"Cycle {iteration+1}: max residual = {max_residual:.4f}")
@@ -152,190 +142,3 @@ def residual_driven_peak_finder(v, a, max_peaks, residual_threshold, k_max,
             QApplication.processEvents()
 
     return popt, centers, v_fit, a_fit, residuals
-
-# --- PyQt5 Application ---
-
-class PekariaFitApp(QWidget):
-    def __init__(self, v_data, a_data):
-        super().__init__()
-        self.v = v_data
-        self.a = a_data
-        self.manual_mode = True
-        self.initUI()
-        self.threshold = 0.001
-        self.max_peaks = 10
-        self.k_max = 10
-        self.center_deviation_threshold = 100
-    
-    def initUI(self):
-        self.setWindowTitle("Interactive Pekarian Fit")
-        layout = QVBoxLayout()
-        
-        # Mode toggle button
-        self.mode_button = QPushButton("Switch to Auto Mode")
-        self.mode_button.clicked.connect(self.toggle_mode)
-        layout.addWidget(self.mode_button)
-        
-        # Slider and label for number of PFs
-        h_layout = QHBoxLayout()
-        label = QLabel("Number of Pekarian bands:")
-        self.slider = QSlider(Qt.Horizontal)
-        self.slider.setMinimum(1)
-        self.slider.setMaximum(10)
-        self.slider.setValue(7)
-        self.slider.valueChanged.connect(self.update_centers_placeholder)
-        self.slider.valueChanged.connect(self.update_param_count_label)
-        h_layout.addWidget(label)
-        h_layout.addWidget(self.slider)
-        layout.addLayout(h_layout)
-        
-        # Parameter count label
-        self.param_count_label = QLabel()
-        layout.addWidget(self.param_count_label)
-        self.update_param_count_label()
-        
-        # Centers input
-        layout.addWidget(QLabel("Enter centers (cm⁻¹), comma separated:"))
-        self.centers_text = QTextEdit()
-        self.centers_text.setPlaceholderText("23000, 28000, 32000")
-        self.centers_text.setFixedHeight(50)
-        layout.addWidget(self.centers_text)
-        self.update_centers_placeholder()
-        
-        # Fit button
-        self.fit_button = QPushButton("Fit")
-        self.fit_button.clicked.connect(self.run_fit)
-        layout.addWidget(self.fit_button)
-        
-        # Fit plot
-        self.fig_fit, self.ax_fit = plt.subplots(figsize=(8, 4))
-        self.canvas_fit = FigureCanvas(self.fig_fit)
-        layout.addWidget(self.canvas_fit)
-        
-        # Residual plot
-        self.fig_res, self.ax_res = plt.subplots(figsize=(8, 2))
-        self.canvas_res = FigureCanvas(self.fig_res)
-        layout.addWidget(self.canvas_res)
-        
-        self.setLayout(layout)
-        self.update_widgets_state()
-    
-    def toggle_mode(self):
-        self.manual_mode = not self.manual_mode
-        self.update_widgets_state()
-    
-    def update_widgets_state(self):
-        if self.manual_mode:
-            self.mode_button.setText("Switch to Auto Mode")
-            self.slider.setEnabled(True)
-            self.centers_text.setEnabled(True)
-            self.param_count_label.show()
-            # self.threshold_text.hide()
-            # self.max_peaks_text.setEnabled(True)
-            # self.k_max_text.hide()
-        else:
-            self.mode_button.setText("Switch to Manual Mode")
-            self.slider.setEnabled(False)
-            self.centers_text.setEnabled(False)
-            self.param_count_label.hide()
-            # self.threshold_text.show()
-            # self.max_peaks_text.setEnabled(True)
-            # self.k_max_text.show()
-            self.centers_text.clear()
-            self.centers_text.setPlaceholderText("Auto mode will detect peaks automatically.")
-    
-    def update_centers_placeholder(self):
-        n = self.slider.value()
-        example_centers = ', '.join(str(23000 + i*5000) for i in range(n))
-        print(f"example_centers: {example_centers}")
-        self.centers_text.setPlaceholderText(example_centers)
-    
-    def update_param_count_label(self):
-        n_pf = self.slider.value()
-        total_params = n_pf
-        self.param_count_label.setText(f"Total parameters: {total_params}")
-    
-    def run_fit(self):
-        if self.manual_mode:
-            centers_str = self.centers_text.toPlainText()
-            if not centers_str.strip():
-                centers_str = self.centers_text.placeholderText()
-            try:
-                centers = [float(c.strip()) for c in centers_str.split(',')]
-            except:
-                self.show_error("Invalid centers input!")
-                return
-            
-            if len(centers) != self.slider.value():
-                self.show_error("Number of centers does not match slider value!")
-                return
-            
-            try:
-                popt, pcov, v_fit, a_fit, comps = iterative_pekaria_fit(self.v, self.a, centers, k_max=self.k_max)
-            except Exception as e:
-                self.show_error(f"Fit error: {e}")
-                return
-            
-            residuals = self.a - np.interp(self.v, v_fit, a_fit)
-            self.plot_results(v_fit, a_fit, comps, centers, residuals)
-        
-        else:
-            try:
-                popt, centers, v_fit, a_fit, residuals = residual_driven_peak_finder(self.v, self.a, 
-                                                                                     max_peaks=self.max_peaks, 
-                                                                                     residual_threshold=self.threshold, 
-                                                                                     k_max=self.k_max,
-                                                                                     center_deviation_threshold=self.center_deviation_threshold)
-            except Exception as e:
-                self.show_error(f"Auto fit error: {e}")
-                return
-            self.plot_results(v_fit, a_fit, None, centers, residuals, auto_mode=True)
-    
-    def plot_results(self, v_fit, a_fit, comps, centers, residuals, auto_mode=False):
-        self.ax_fit.clear()
-        self.ax_fit.plot(self.v, self.a, label="Experimental", color='black', linewidth=1.2)
-        
-        if auto_mode:
-            # Plot PFs from parameters if possible (skipped here for brevity)
-            for i, c in enumerate(centers, 1):
-                self.ax_fit.axvline(c, color='blue', linestyle='--', label=f"Auto Peak {i} ({c:.0f})")
-        else:
-            for i, comp in enumerate(comps[:-1], 1):
-                self.ax_fit.plot(v_fit, comp, '--', label=f"PF{i} (~{centers[i-1]})")
-            self.ax_fit.plot(v_fit, comps[-1], '--', label="Gaussian Tail")
-        
-        self.ax_fit.plot(v_fit, a_fit, label="Total Fit", color='orange', linewidth=1.5)
-        self.ax_fit.set_xlabel("Wavenumber (cm⁻¹)")
-        self.ax_fit.set_ylabel("Epsilon")
-        self.ax_fit.set_title("Interactive Pekarian Fit" + (" (Auto Mode)" if auto_mode else ""))
-        self.ax_fit.legend()
-        self.ax_fit.invert_xaxis()
-        self.canvas_fit.draw()
-        
-        self.ax_res.clear()
-        self.ax_res.plot(self.v, residuals, color='red')
-        self.ax_res.axhline(0, color='black', linestyle='--')
-        self.ax_res.set_xlabel("Wavenumber (cm⁻¹)")
-        self.ax_res.set_ylabel("Residuals")
-        self.ax_res.set_title("Residuals (Experimental - Fit)")
-        self.ax_res.invert_xaxis()
-        self.canvas_res.draw()
-    
-    def show_error(self, message):
-        self.ax_fit.clear()
-        self.ax_fit.text(0.5, 0.5, message, ha='center', va='center', fontsize=12, color='red')
-        self.canvas_fit.draw()
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    
-    filename = sys.argv[1]
-    df = pd.read_csv(filename, sep='\t')
-    v_trans = df.iloc[:, 1].values
-    a_trans = df.iloc[:, 2].values
-    # print(f"v_trans: {v_trans}")
-    # print(f"a_trans: {a_trans}")
-    
-    ex = PekariaFitApp(v_trans, a_trans)
-    ex.show()
-    sys.exit(app.exec_())
