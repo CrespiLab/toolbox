@@ -18,8 +18,9 @@ def main():
         def __init__(self):
             super(PekariaFitApp, self).__init__()
             self.setupUi(self)
-            self.threshold_percent = 0.1
+            
             self.max_peaks = 10
+            self.threshold_percent = 0.1
             self.k_max = 10
             self.center_deviation_threshold = 100
             self.manual_mode = True
@@ -48,6 +49,8 @@ def main():
             self.Button_Fit_First_store.clicked.connect(self.store_first_fit)
             self.Button_Fit_Last_fit.clicked.connect(self.fit_last_spectrum)
             self.Button_Fit_Last_store.clicked.connect(self.store_last_fit)
+            self.SaveButton_FirstLast_Fits.clicked.connect(self.save_both_fits_to_csv)
+            self.Button_Fit_FirstLastWeights.clicked.connect(self.fit_all_spectra_with_weights)
 
             ############################################################
             ### Plot Areas ###
@@ -59,18 +62,17 @@ def main():
             self.canvas_res = FigureCanvas(self.fig_res)
             self.verticalLayout_Plot.addWidget(self.canvas_res)
             ############################################################
-
-            self.SaveButton_FirstLast_Fits.clicked.connect(self.save_both_fits_to_csv)
-            self.Button_Fit_FirstLastWeights.clicked.connect(self.fit_all_spectra_with_weights)
+            
+            self.Button_CancelFit.clicked.connect(self.cancel_fit)
             
             self.output_console = self.textEdit_OutputConsole
             
             #### INITIALISATION ####
                 ##!!! ADD THESE
             # self.SetButtons() ## set buttons active and inactive
-            # self.SetTextfields() # Set text fields defaults
+            self.SetTextfields() # Set text fields defaults
             
-            self.update_widgets_state()
+            # self.update_widgets_state()
             self.handle_radio_selections()
 
         ############################################################
@@ -84,24 +86,71 @@ def main():
                 self.LoadButton_Single.setEnabled(True)
                 self.LoadButton_FirstLast.setEnabled(False)
                 self.LoadButton_Batch.setEnabled(False)
-
-                ##!!! ADD MORE FOR BUTTONS IN Fit
+                
+                self.Button_FitSingle.setEnabled(True)
+                self.Button_Fit_First_fit.setEnabled(False)
+                self.Button_Fit_First_store.setEnabled(False)
+                self.Button_Fit_Last_fit.setEnabled(False)
+                self.Button_Fit_Last_store.setEnabled(False)
+                self.SaveButton_FirstLast_Fits.setEnabled(False)
+                self.Button_Fit_FirstLastWeights.setEnabled(False)
+                self.Button_FitBatch.setEnabled(False)
 
             if self.radioButton_FirstLast.isChecked(): # First-Last-Weighted
                 self.LoadButton_Single.setEnabled(False)
                 self.LoadButton_FirstLast.setEnabled(True)
                 self.LoadButton_Batch.setEnabled(False)
                 
+                self.Button_FitSingle.setEnabled(False)
+                self.Button_Fit_First_fit.setEnabled(True)
+                self.Button_Fit_First_store.setEnabled(True)
+                self.Button_Fit_Last_fit.setEnabled(True)
+                self.Button_Fit_Last_store.setEnabled(True)
+                self.SaveButton_FirstLast_Fits.setEnabled(True)
+                self.Button_Fit_FirstLastWeights.setEnabled(True)
+                self.Button_FitBatch.setEnabled(False)
+                
             if self.radioButton_Batch.isChecked(): # Batch
                 self.LoadButton_Single.setEnabled(False)
                 self.LoadButton_FirstLast.setEnabled(False)
                 self.LoadButton_Batch.setEnabled(True)
+                
+                self.Button_FitSingle.setEnabled(False)
+                self.Button_Fit_First_fit.setEnabled(False)
+                self.Button_Fit_First_store.setEnabled(False)
+                self.Button_Fit_Last_fit.setEnabled(False)
+                self.Button_Fit_Last_store.setEnabled(False)
+                self.SaveButton_FirstLast_Fits.setEnabled(False)
+                self.Button_Fit_FirstLastWeights.setEnabled(False)
+                self.Button_FitBatch.setEnabled(True)
+
+        def SetTextfields(self):
+            """ Display experimental parameters in text fields """
+            self.lineEdit_MaxPFs.setText(str(self.max_peaks)) 
+            self.lineEdit_Threshold.setText(str(self.threshold_percent))
+            self.lineEdit_kmax.setText(str(self.k_max))
+            self.lineEdit_CenterDeviation.setText(str(self.center_deviation_threshold))
+            self.update_widgets_mode()
+            
+        def update_widgets_mode(self):
+            if self.manual_mode:
+                self.Button_FitMode.setText("Switch to Auto Mode")
+                self.textEdit_centers.setEnabled(True)
+                self.textEdit_centers.setPlaceholderText("23000, 28000, 32000") ##!!! define with default
+            else:
+                self.Button_FitMode.setText("Switch to Manual Mode")
+                self.textEdit_centers.setEnabled(False)
+                self.textEdit_centers.clear()
+                self.textEdit_centers.setPlaceholderText("Auto mode will detect peaks automatically.")
+
+        def toggle_mode(self):
+            self.manual_mode = not self.manual_mode
+            self.update_widgets_mode()
 
         ######### Update methods for the parameters ########################
         def update_MaxPFs(self):
             try:
-                self.max_peaks = float(self.lineEdit_MaxPFs.text())  # Convert the input to a float
-                print(f"max_peaks: {self.max_peaks}")
+                self.max_peaks = int(self.lineEdit_MaxPFs.text())  # Convert the input to a float
             except ValueError:
                 pass  # Handle the case where the input is not a valid number
 
@@ -113,7 +162,7 @@ def main():
 
         def update_kmax(self):
             try:
-                self.k_max = float(self.lineEdit_kmax.text())  # Convert the input to a float
+                self.k_max = int(self.lineEdit_kmax.text())  # Convert the input to a float
             except ValueError:
                 pass  # Handle the case where the input is not a valid number
 
@@ -124,26 +173,6 @@ def main():
                 pass  # Handle the case where the input is not a valid number
 
         ###########################################################################
-
-        def toggle_mode(self):
-            self.manual_mode = not self.manual_mode
-            self.update_widgets_state()
-    
-        def update_widgets_state(self):
-            if self.manual_mode:
-                self.Button_FitMode.setText("Switch to Auto Mode")
-                self.textEdit_centers.setEnabled(True)
-                # self.param_count_label.show()
-                self.labelDescr_ManualMode.show()
-                self.textEdit_centers.setPlaceholderText("23000, 28000, 32000")
-            else:
-                self.Button_FitMode.setText("Switch to Manual Mode")
-                self.textEdit_centers.setEnabled(False)
-                # self.param_count_label.hide()
-                self.labelDescr_ManualMode.hide()
-                self.textEdit_centers.clear()
-                self.textEdit_centers.setPlaceholderText("Auto mode will detect peaks automatically.")
-
         def load_single_spectrum(self):
             self.load_file("Single Spectrum")
 
