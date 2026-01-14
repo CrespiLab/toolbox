@@ -7,6 +7,7 @@ import math
 from scipy.optimize import curve_fit
 from scipy.signal import find_peaks
 from scipy.interpolate import interp1d
+from PyQt5.QtWidgets import (QApplication)
 
 # --- Pekarian and helper functions ---
 
