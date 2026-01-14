@@ -199,7 +199,7 @@ def main():
             if LoadData.loaded_spectra is None:
                 self.output_console.append("⚠️ No data loaded.")
                 return
-            # self.type_of_spectrum = "batch_first"
+            self.type_of_spectrum = "weights_first"
             
             self.wavenumbers = LoadData.loaded_wavenumbers
             self.abs = LoadData.loaded_first_spectrum
@@ -224,7 +224,7 @@ def main():
             else:
                 self.worker = FitWorker(
                     self.wavenumbers, self.abs, self.max_peaks, self.threshold_absolute,
-                    self.k_max, self.center_deviation_threshold,
+                    self.k_max, self.center_deviation_threshold
                 )
                 self.worker.progress.connect(self.output_console.append)
                 self.worker.finished.connect(self.on_fit_finished)
@@ -235,7 +235,7 @@ def main():
             if LoadData.loaded_spectra is None:
                 self.output_console.append("⚠️ No data loaded.")
                 return
-            # self.type_of_spectrum = "batch_last"
+            self.type_of_spectrum = "weights_last"
             
             self.wavenumbers = LoadData.loaded_wavenumbers
             self.abs = LoadData.loaded_last_spectrum
@@ -314,7 +314,11 @@ def main():
             self.ax_fit.plot(v_fit, a_fit, label="Total Fit", color='orange', linewidth=1.5)
             self.ax_fit.set_xlabel("Wavenumber (cm⁻¹)")
             self.ax_fit.set_ylabel("Epsilon")
-            self.ax_fit.set_title(f"Fit Result (Spectrum {index+1}/{total})" + (" (Auto)" if not self.manual_mode else " (Manual)"))
+            
+            if self.type_of_spectrum in ["weights_first", "weights_last"]:
+                self.ax_fit.set_title(f"Fit Result (Spectrum {index+1}/{total})" + (" (Auto)" if not self.manual_mode else " (Manual)"))
+            elif self.type_of_spectrum == "single":
+                self.ax_fit.set_title("Fit Result (Single)" + (" (Auto)" if not self.manual_mode else " (Manual)"))
             self.ax_fit.legend()
             self.ax_fit.invert_xaxis()
             self.canvas_fit.draw()
@@ -334,9 +338,8 @@ def main():
                 self.output_console.append("❌ Cancel requested...")
     
         def on_fit_finished(self, result):
-            ##!!! ADD INFORMATION WHETHER IT'S FIRST OR LAST SPECTRUM
-            ##!!! NEEDED TO STORE self.temp_fit_first and temp_fit_last
             popt, centers, v_fit, a_fit, residuals, comps = result
+            self.assign_temp_fit(a_fit)
             self.plot_results(v_fit, a_fit, comps, centers, residuals)
             interp_residuals = np.interp(v_fit, self.wavenumbers, residuals)
             self.last_fit_data = pd.DataFrame({
@@ -344,8 +347,15 @@ def main():
                 'Fit': a_fit,
                 **{f'PF{i+1}': comps[i] for i in range(len(comps)-1)},
                 'GaussianTail': comps[-1],
-                'Residuals': interp_residuals
+                'Residuals': interp_residuals,
+                'Spectrum': self.type_of_spectrum
             })
+        
+        def assign_temp_fit(self, a_fit):
+            if self.type_of_spectrum == "weights_first":
+                self.temp_fit_first = a_fit
+            elif self.type_of_spectrum == "weights_last":
+                self.temp_fit_last = a_fit
         
         def fit_all_spectra_with_weights(self):
             ''' 
