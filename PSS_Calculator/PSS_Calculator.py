@@ -43,7 +43,6 @@ def main():
             self.checkBox_WavenumbersOnly.stateChanged.connect(self.handle_check_buttons)
 
             self.lineEdit_StableatPSS.textChanged.connect(self.update_ratio_at_PSS)
-            self.lineEdit_MetastableatPSS.textChanged.connect(self.update_ratio_at_PSS)
             
             self.Button_PlotLoaded.clicked.connect(self.plot_loaded_spectra)
 
@@ -61,9 +60,6 @@ def main():
             # self.canvas_res = FigureCanvas(self.fig_res)
             # self.verticalLayout_Plot.addWidget(self.canvas_res)
             ############################################################
-            
-            # self.Button_CancelFit.clicked.connect(self.cancel_fit)
-            
             self.output_console = self.textEdit_OutputConsole
             
             #### INITIALISATION ####
@@ -71,30 +67,46 @@ def main():
 
         ############################################################
         ############################################################
+        
         def handle_check_buttons(self):
             if self.checkBox_WavenumbersOnly.isChecked():
                 self.wavenumbers_only = True
-                self.output_console.append("Wavenumbers only (first column)")
+                self.output_console.append("Option checked for: Wavenumbers only (first column)")
             else:
                 self.wavenumbers_only = False
+                self.output_console.append("Option not checked for: Wavenumbers only (first column)")
             
 
         ######### Update methods for the parameters ########################
         def update_ratio_at_PSS(self):
             try:
                 self.stable_at_PSS_percent = float(self.lineEdit_StableatPSS.text())  # Convert the input to a float
-                self.stable_at_PSS_fraction = self.stable_at_PSS_percent/100
-                self.metastable_at_PSS_percent = float(self.lineEdit_MetastableatPSS.text())  # Convert the input to a float
+                if float(0) <= self.stable_at_PSS_percent <= float(100):
+                    self.stable_at_PSS_fraction = self.stable_at_PSS_percent/100
+            except ValueError as e:
+                self.stable_at_PSS_fraction = None
+                self.output_console.append(f"Incorrect input: {e}")
+            self.check_PSS_fractions()
+            
+        def check_PSS_fractions(self):
+            if self.stable_at_PSS_fraction != None:
+                self.metastable_at_PSS_percent = 100-self.stable_at_PSS_percent
+                self.lineEdit_MetastableatPSS.setText(str(self.metastable_at_PSS_percent)) ## display calculated value for Metastable at PSS (%)
                 self.metastable_at_PSS_fraction = self.metastable_at_PSS_percent/100
-                
+
                 self.sum_of_fractions = self.stable_at_PSS_fraction+self.metastable_at_PSS_fraction
                 
                 self.output_console.append(f"{self.stable_at_PSS_fraction*100}% of Stable and {self.metastable_at_PSS_fraction*100}% of Metastable at PSS")
+                message = "fine"
+            else:
+                self.output_console.append("Incorrect input of Stable fraction at PSS")
+                message = "issue"
+            return message
+                
 
-            except ValueError:
-                pass  # Handle the case where the input is not a valid number
-
+        ###########################################################################        
         ###########################################################################
+        
         def load_stable_spectrum(self):
             self.load_file("Stable Spectrum")
             self.plot_spectra("loaded")
@@ -159,6 +171,10 @@ def main():
             self.processed_spectra['PSS'] = self.loaded_spectrum_PSS
 
         def calculate_metastable(self):
+            message = self.check_PSS_fractions()
+            if message == "issue":
+                return
+            
             if self.sum_of_fractions != float(1):
                 self.output_console.append("Ratios do not add up to 1")
                 return
@@ -166,12 +182,6 @@ def main():
             if self.loaded_spectrum_Stable is None or self.loaded_spectrum_PSS is None:
                 self.output_console.append("Load Stable and PSS spectra before calculation.")
                 return
-
-            # x_1, y_1= self.processed_spectra['Stable']
-            # x_mix, y_mix = self.processed_spectra['PSS']
-            # if len(x_1) != len(x_mix) or not np.allclose(x_1, x_mix):
-            #     self.output_console.append("Wavenumber axes of Stable and PSS processed_spectra must match and must have same length.")
-            #     return
 
             try:
                 self.process_spectra()
@@ -192,6 +202,8 @@ def main():
                 self.output_console.append("Calculation of Metastable spectrum successful")
                 
                 self.plot_spectra("processed")
+                
+                ##!!! ADD WARNING: when calculated Metastable spectrum has (significant) negative values, indicating an error in the used ratio
                 
             except Exception as e:
                 self.output_console.append(f"Calculation failed: {e}.")
