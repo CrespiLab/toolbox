@@ -2,8 +2,12 @@
 **October 7<sup>th</sup>, 2025**
 
 Package containing miscellaneous useful scripts:
-- QuickPlotAbs: use the command `quickplotabs`
-- plotter_TDDFT: TBA
+- QuickPlotAbs: quickly plot absorption spectra from ASCII files
+- plotter_TDDFT: plot TDDFT data
+- molgeom
+  -  molgeom: retrieve geometrical properties of molecules, e.g., obtain, distances, angles, and dihedral angles
+  -  reorient: perform rotational operations on geometries of molecules
+- SpectraFitter: fit Gaussian shapes to experimental spectra to obtain smooth curves useful for further processing
 
 # Installation
 ## Anaconda Powershell Prompt
@@ -29,3 +33,9 @@ quickplotabs 'Path\to\folder\containing\ASCII\files\' (--wavelength 'wavelength'
 
 ## plotter_TDDFT
 TBA
+
+## SpectraFitter
+To start the program, use the command:
+```
+spectrafitter
+```
