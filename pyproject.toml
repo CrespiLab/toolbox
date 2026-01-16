@@ -48,12 +48,14 @@ quickplotabs = "QuickPlotAbs.cli:main"
 tddftplotter = "plotter_TDDFT.cli:main"
 spectrafitter_single = "SpectraFitter.SpectraFitter_single:main"
 spectrafitter = "SpectraFitter.SpectraFitter:main"
+psscalc = "PSS_Calculator.PSS_Calculator:main"
 
 [tool.setuptools]
 packages = [
    "QuickPlotAbs",
    "plotter_TDDFT",
    "Robocopy_backup",
-   "SpectraFitter"
+   "SpectraFitter",
+   "PSS_Calculator"
 ]
 
