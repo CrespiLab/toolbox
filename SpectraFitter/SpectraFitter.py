@@ -6,7 +6,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtWidgets import (QFileDialog,    
-    QApplication, QMainWindow, QMessageBox
+    # QMessageBox,
+    QApplication, QMainWindow, 
 )
 from SpectraFitter.tools.FitPekarianGaussianHybrid import iterative_pekaria_fit
 from SpectraFitter.tools.FitWorker_Auto_SingleSpectrum import FitWorker
@@ -34,7 +35,7 @@ def main():
 
             self.LoadButton_Single.clicked.connect(self.load_single_spectrum) ##!!! ADD
             self.LoadButton_FirstLast.clicked.connect(self.load_full_dataset)
-            self.LoadButton_Batch.clicked.connect(self.load_full_dataset) ##!!! ADD SEPARATE FUNCTION
+            self.LoadButton_Batch.clicked.connect(self.load_batch) ##!!! ADD SEPARATE FUNCTION
             
             self.Button_FitMode.clicked.connect(self.toggle_mode)
 
@@ -54,6 +55,7 @@ def main():
 
             ############################################################
             ### Plot Areas ###
+            ##!!! change to using class MplCanvas in separate .py
             self.fig_fit, self.ax_fit = plt.subplots(figsize=(8, 4))
             self.canvas_fit = FigureCanvas(self.fig_fit)
             self.verticalLayout_Plot.addWidget(self.canvas_fit)
@@ -68,11 +70,7 @@ def main():
             self.output_console = self.textEdit_OutputConsole
             
             #### INITIALISATION ####
-                ##!!! ADD THESE
-            # self.SetButtons() ## set buttons active and inactive
             self.SetTextfields() # Set text fields defaults
-            
-            # self.update_widgets_state()
             self.handle_radio_selections()
 
         ############################################################
@@ -88,8 +86,10 @@ def main():
                 self.LoadButton_Batch.setEnabled(False)
                 
                 self.Button_FitSingle.setEnabled(True)
+                self.labelDescr_Fit_First.setEnabled(False)
                 self.Button_Fit_First_fit.setEnabled(False)
                 self.Button_Fit_First_store.setEnabled(False)
+                self.labelDescr_Fit_Last.setEnabled(False)
                 self.Button_Fit_Last_fit.setEnabled(False)
                 self.Button_Fit_Last_store.setEnabled(False)
                 self.SaveButton_FirstLast_Fits.setEnabled(False)
@@ -102,8 +102,10 @@ def main():
                 self.LoadButton_Batch.setEnabled(False)
                 
                 self.Button_FitSingle.setEnabled(False)
+                self.labelDescr_Fit_First.setEnabled(True)
                 self.Button_Fit_First_fit.setEnabled(True)
                 self.Button_Fit_First_store.setEnabled(True)
+                self.labelDescr_Fit_Last.setEnabled(True)
                 self.Button_Fit_Last_fit.setEnabled(True)
                 self.Button_Fit_Last_store.setEnabled(True)
                 self.SaveButton_FirstLast_Fits.setEnabled(True)
@@ -116,8 +118,10 @@ def main():
                 self.LoadButton_Batch.setEnabled(True)
                 
                 self.Button_FitSingle.setEnabled(False)
+                self.labelDescr_Fit_First.setEnabled(False)
                 self.Button_Fit_First_fit.setEnabled(False)
                 self.Button_Fit_First_store.setEnabled(False)
+                self.labelDescr_Fit_Last.setEnabled(False)
                 self.Button_Fit_Last_fit.setEnabled(False)
                 self.Button_Fit_Last_store.setEnabled(False)
                 self.SaveButton_FirstLast_Fits.setEnabled(False)
@@ -126,7 +130,7 @@ def main():
 
         def SetTextfields(self):
             """ Display experimental parameters in text fields """
-            self.lineEdit_MaxPFs.setText(str(self.max_peaks)) 
+            # self.lineEdit_MaxPFs.setText(str(self.max_peaks))
             self.lineEdit_Threshold.setText(str(self.threshold_percent))
             self.lineEdit_kmax.setText(str(self.k_max))
             self.lineEdit_CenterDeviation.setText(str(self.center_deviation_threshold))
@@ -136,12 +140,19 @@ def main():
             if self.manual_mode:
                 self.Button_FitMode.setText("Switch to Auto Mode")
                 self.textEdit_centers.setEnabled(True)
-                self.textEdit_centers.setPlaceholderText("23000, 28000, 32000") ##!!! define with default
+                # self.textEdit_centers.setPlaceholderText("23000, 28000, 32000")
+                self.textEdit_centers.setText("23000, 28000, 32000") ##!!! define with default
+                self.labelDescr_MaxPFs.setEnabled(False)
+                self.lineEdit_MaxPFs.clear()
+                self.lineEdit_MaxPFs.setEnabled(False)
             else:
                 self.Button_FitMode.setText("Switch to Manual Mode")
                 self.textEdit_centers.setEnabled(False)
                 self.textEdit_centers.clear()
                 self.textEdit_centers.setPlaceholderText("Auto mode will detect peaks automatically.")
+                self.labelDescr_MaxPFs.setEnabled(True)
+                self.lineEdit_MaxPFs.setEnabled(True)
+                self.lineEdit_MaxPFs.setText(str(self.max_peaks)) 
 
         def toggle_mode(self):
             self.manual_mode = not self.manual_mode
@@ -179,6 +190,9 @@ def main():
         def load_full_dataset(self):
             self.load_file("Full Dataset")
 
+        def load_batch(self):
+            self.load_file("Batch")
+
         def load_file(self, file_desc):
             """Load a file based on the file description."""
             try:
@@ -188,7 +202,9 @@ def main():
                                                            "CSV, DAT Files (*.csv *dat);;DAT Files (*.dat);;All Files (*)", 
                                                            options=options)
                 if not file_name:
-                    QMessageBox.warning(self, "Error", f"No {file_desc} file selected")
+                    # QMessageBox.warning(self, "Error", f"No {file_desc} file selected")
+                    self.output_console.append(f"No {file_desc} file selected")
+
                     return
     
                 ##################################################
@@ -200,6 +216,7 @@ def main():
                 
                 if file_desc == "Single Spectrum":
                     ##!!! ADD CODE
+                    self.output_console.append(f"File Type {file_desc} not available yet")
                     print("code for loading a single spectrum")
                 
                 elif file_desc == "Full Dataset":
@@ -209,6 +226,8 @@ def main():
                      LoadData.loaded_first_spectrum,
                      LoadData.loaded_last_spectrum,
                      LoadData.loaded_number_of_spectra) = LoadData.load_full(LoadData.loaded_data)
+                elif file_desc == "Batch":
+                    self.output_console.append(f"File Type {file_desc} not available yet")
                 else:
                     pass
                 self.output_console.append(f"{file_desc} file {file_name} loaded successfully!")
