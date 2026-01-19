@@ -83,6 +83,8 @@ def main():
                 self.stable_at_PSS_percent = float(self.lineEdit_StableatPSS.text())  # Convert the input to a float
                 if float(0) <= self.stable_at_PSS_percent <= float(100):
                     self.stable_at_PSS_fraction = self.stable_at_PSS_percent/100
+                else:
+                    self.stable_at_PSS_fraction = None
             except ValueError as e:
                 self.stable_at_PSS_fraction = None
                 self.output_console.append(f"Incorrect input: {e}")
@@ -93,12 +95,15 @@ def main():
                 self.metastable_at_PSS_percent = 100-self.stable_at_PSS_percent
                 self.lineEdit_MetastableatPSS.setText(str(self.metastable_at_PSS_percent)) ## display calculated value for Metastable at PSS (%)
                 self.metastable_at_PSS_fraction = self.metastable_at_PSS_percent/100
-
                 self.sum_of_fractions = self.stable_at_PSS_fraction+self.metastable_at_PSS_fraction
                 
                 self.output_console.append(f"{self.stable_at_PSS_fraction*100}% of Stable and {self.metastable_at_PSS_fraction*100}% of Metastable at PSS")
                 message = "fine"
             else:
+                self.lineEdit_MetastableatPSS.setText("Error") ## display calculated value for Metastable at PSS (%)
+                self.metastable_at_PSS_fraction = None
+                self.sum_of_fractions = None
+
                 self.output_console.append("Incorrect input of Stable fraction at PSS")
                 message = "issue"
             return message
