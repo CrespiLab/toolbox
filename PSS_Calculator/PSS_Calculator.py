@@ -161,19 +161,26 @@ def main():
         def plot_loaded_spectra(self):
             self.plot_spectra("loaded")
 
-        def interpolate_wavelengths(self):
-
-            ##!!! interpolate wavelengths data
+        def interpolate_spectra(self):
+            ''' Interpolate spectra over wavelengths of Stable data '''
             self.processed_wavelengths = self.loaded_wavelengths_Stable
             self.processed_wavenumbers = self.loaded_wavenumbers_Stable
+
+            self.processed_spectra['Stable'] = np.interp(self.processed_wavenumbers, 
+                                                         self.loaded_wavenumbers_Stable,
+                                                         self.loaded_spectrum_Stable)
+
+            self.processed_spectra['PSS'] = np.interp(self.processed_wavenumbers,
+                                                      self.loaded_wavenumbers_PSS,
+                                                      self.loaded_spectrum_PSS)
+            
+            ##!!! NEED TO INTERPOLATE OVER WAVELENGTHS TOO??
             
         def process_spectra(self):
-            ##!!! ANY PROCESSING BEFOREHAND
-            self.interpolate_wavelengths()
+            ## Add any processing before interpolation
             
-            ##!!! USE INTERPOLATED DATA
-            self.processed_spectra['Stable'] = self.loaded_spectrum_Stable
-            self.processed_spectra['PSS'] = self.loaded_spectrum_PSS
+            ## Interpolation
+            self.interpolate_spectra()
 
         def calculate_metastable(self):
             message = self.check_PSS_fractions()
@@ -208,7 +215,7 @@ def main():
                 
                 self.plot_spectra("processed")
                 
-                ##!!! ADD WARNING: when calculated Metastable spectrum has (significant) negative values, indicating an error in the used ratio
+                ##!!! ADD WARNING when calculated Metastable spectrum has (significant) negative values, indicating an error in the used ratio
                 
             except Exception as e:
                 self.output_console.append(f"Calculation failed: {e}.")
@@ -235,10 +242,12 @@ def main():
                     self.ax_main.plot(x, y, label='PSS')
                 if 'Calculated_Metastable_before_rescaling' in self.processed_spectra:
                     y = self.processed_spectra['Calculated_Metastable_before_rescaling']
-                    self.ax_main.plot(x, y, label='Calculated Metastable (before rescaling)')
+                    self.ax_main.plot(x, y, '--', color = 'green',
+                                      label=f'Calculated Metastable ({self.metastable_at_PSS_percent:.1f}%) (before rescaling)')
                 if 'Calculated_Metastable' in self.processed_spectra:
                     y = self.processed_spectra['Calculated_Metastable']
-                    self.ax_main.plot(x, y, label='Calculated Metastable')
+                    self.ax_main.plot(x, y, '-', color = 'green',
+                                      label='Calculated Metastable')
 
             self.ax_main.invert_xaxis()
             self.ax_main.set_xlabel("Wavenumber (cm⁻¹)")
