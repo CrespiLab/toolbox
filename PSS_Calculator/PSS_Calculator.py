@@ -104,7 +104,7 @@ def main():
                 self.metastable_at_PSS_fraction = None
                 self.sum_of_fractions = None
 
-                self.output_console.append("Incorrect input of Stable fraction at PSS")
+                self.output_console.append("ERROR: Incorrect input of Stable fraction at PSS")
                 message = "issue"
             return message
                 
@@ -174,8 +174,6 @@ def main():
                                                       self.loaded_wavenumbers_PSS,
                                                       self.loaded_spectrum_PSS)
             
-            ##!!! NEED TO INTERPOLATE OVER WAVELENGTHS TOO??
-            
         def process_spectra(self):
             ## Add any processing before interpolation
             
@@ -183,22 +181,22 @@ def main():
             self.interpolate_spectra()
 
         def calculate_metastable(self):
+            if self.loaded_spectrum_Stable is None or self.loaded_spectrum_PSS is None:
+                self.output_console.append("ERROR: Load Stable and PSS spectra before calculation.")
+                return
+
             message = self.check_PSS_fractions()
             if message == "issue":
                 return
             
             if self.sum_of_fractions != float(1):
-                self.output_console.append("Ratios do not add up to 1")
-                return
-            
-            if self.loaded_spectrum_Stable is None or self.loaded_spectrum_PSS is None:
-                self.output_console.append("Load Stable and PSS spectra before calculation.")
+                self.output_console.append("ERROR: Ratios do not add up to 1")
                 return
 
             try:
                 self.process_spectra()
             except Exception as e:
-                self.output_console.append(f"Processing of spectra failed: {e}.")
+                self.output_console.append(f"ERROR: Processing of spectra failed: {e}.")
                 return
             
             try:
@@ -277,41 +275,36 @@ def main():
             })
         
         def save_calculated_metastable(self):
-            if not hasattr(self, 'temp_fit_first') or not hasattr(self, 'temp_fit_last'):
-                self.output_console.append("❌ Both first and last fits are required to save.")
+            if not 'Calculated_Metastable' in self.processed_spectra:
+                self.output_console.append("ERROR: First calculate the spectrum please.")
                 return
             
-            wavenumbers = LoadData.loaded_wavenumbers
+            wavelengths = self.processed_wavelengths
+            wavenumbers = self.processed_wavenumbers
+            stable = self.processed_spectra['Stable']
+            pss = self.processed_spectra['PSS']
+            metastable_before_rescaling = self.processed_spectra['Calculated_Metastable_before_rescaling']
+            metastable = self.processed_spectra['Calculated_Metastable']
 
-            path, _ = QFileDialog.getSaveFileName(self, "Save Fits", "", "CSV Files (*.csv)")
+            fullpath, _ = QFileDialog.getSaveFileName(self, "Save Calculated Metastable Spectrum", "",
+                                                      "CSV Files (*.csv);;DAT Files (*.dat)")
+            path = os.path.splitext(fullpath)[0]
             if path:
                 df = pd.DataFrame({
-                    'Wavenumber': wavenumbers,
-                    'Fit_First': self.temp_fit_first,
-                    'Fit_Last': self.temp_fit_last
+                    'Wavelength (nm)': wavelengths,
+                    'Wavenumbers (cm-1)': wavenumbers,
+                    'Stable': stable,
+                    'PSS': pss,
+                    f'Calculated Metastable (before re-scaling ({self.metastable_at_PSS_percent:.1f} pct))': metastable_before_rescaling,
+                    'Calculated Metastable': metastable
                 })
-                df.to_csv(path, index=False)
-                self.output_console.append(f"💾 First and last fits saved to {path}")            
+                df_inv = df[::-1] ## invert dataframe so that wavelength increases downward
+                df_inv.drop('Wavenumbers (cm-1)', axis=1).to_csv(path+'.csv', sep=',', index=False) ## csv file (without Wavenumbers)
+                df_inv.to_csv(path+'.dat', sep='\t', index=False) ## dat file (including Wavenumbers)
+                self.output_console.append(f"Calculated Metastable spectrum saved to {path}.csv and .dat")
+            else:
+                self.output_console.append("Nothing was saved")
                 return
-            if LoadData.loaded_spectra is None:
-                self.output_console.append("❌ No full transient dataset loaded.")
-                return
-    
-            # spectra = LoadData.loaded_spectra.iloc[:, 2:].values
-            spectra = LoadData.loaded_spectra
-            v = wavenumbers
-            fit_first = np.interp(v, v, self.temp_fit_first)
-            fit_last = np.interp(v, v, self.temp_fit_last)
-    
-            df_out = pd.DataFrame({'Wavenumber': v})
-            for i, spec in enumerate(fitted_spectra):
-                df_out[f'Fit_{i+1}'] = spec
-            df_out['Weights'] = weights
-    
-            path, _ = QFileDialog.getSaveFileName(self, "Save Weighted Fits", "", "CSV Files (*.csv)")
-            if path:
-                df_out.to_csv(path, index=False)
-                self.output_console.append(f"💾 Weighted fits saved to {path}")
 
         def show_error(self, message):
             self.ax_main.clear()
