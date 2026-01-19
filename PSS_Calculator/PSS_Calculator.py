@@ -75,7 +75,6 @@ def main():
             else:
                 self.wavenumbers_only = False
                 self.output_console.append("Option not checked for: Wavenumbers only (first column)")
-            
 
         ######### Update methods for the parameters ########################
         def update_ratio_at_PSS(self):
@@ -107,7 +106,6 @@ def main():
                 self.output_console.append("ERROR: Incorrect input of Stable fraction at PSS")
                 message = "issue"
             return message
-                
 
         ###########################################################################        
         ###########################################################################
@@ -254,25 +252,6 @@ def main():
             self.ax_main.legend()
                 ##!!! move legend next to plot area (need gridspec)
             self.canvas_main.draw()
-
-        def cancel_fit(self):
-            if self.worker and self.worker.isRunning():
-                self.worker.stop()
-                self.output_console.append("❌ Cancel requested...")
-    
-        def on_fit_finished(self, result):
-            popt, centers, v_fit, a_fit, residuals, comps = result
-            self.assign_temp_fit(a_fit)
-            self.plot_results(v_fit, a_fit, comps, centers, residuals)
-            interp_residuals = np.interp(v_fit, self.wavenumbers, residuals)
-            self.last_fit_data = pd.DataFrame({
-                'Wavenumber': v_fit,
-                'Fit': a_fit,
-                **{f'PF{i+1}': comps[i] for i in range(len(comps)-1)},
-                'GaussianTail': comps[-1],
-                'Residuals': interp_residuals,
-                'Spectrum': self.type_of_spectrum
-            })
         
         def save_calculated_metastable(self):
             if not 'Calculated_Metastable' in self.processed_spectra:
