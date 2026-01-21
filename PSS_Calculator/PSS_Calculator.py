@@ -26,15 +26,19 @@ def main():
              self.loaded_wavenumbers_PSS, 
              self.loaded_spectrum_PSS) = (None, None, None)
             
+            self.wavelengthlimit_low = None
+            self.wavelengthlimit_high = None
+            
             self.processed_wavelengths = None
             self.processed_wavenumbers = None
-            self.processed_spectra = {} # keys: 'Stable', 'PSS', 'Calculated_Metastable', 'Calculated_Metastable_before_rescaling'
+            self.processed_spectra = {} # keys: 'Stable', 'PSS'
+            self.calculated_spectra = {} # keys: 'Calculated_Metastable', 'Calculated_Metastable_before_rescaling'
             
             self.stable_at_PSS_percent = None
             self.stable_at_PSS_fraction = None
             self.metastable_at_PSS_percent = None
             self.metastable_at_PSS_fraction = None
-            self.worker = None
+            
             self.initUI()
         
         def initUI(self):
@@ -45,6 +49,11 @@ def main():
             self.lineEdit_StableatPSS.textChanged.connect(self.update_ratio_at_PSS)
             
             self.Button_PlotLoaded.clicked.connect(self.plot_loaded_spectra)
+            
+            self.lineEdit_CutSpectra_min.textChanged.connect(self.update_wavelength_limits)
+            self.lineEdit_CutSpectra_max.textChanged.connect(self.update_wavelength_limits)
+            self.Button_Reset_WavelengthLimits.clicked.connect(self.reset_wavelength_limits)
+            self.Button_Process_Spectra.clicked.connect(self.process_spectra)
 
             self.Button_CalculateMetastable.clicked.connect(self.calculate_metastable)
             self.SaveButton_CalculatedMetastable.clicked.connect(self.save_calculated_metastable)
@@ -64,6 +73,8 @@ def main():
             
             #### INITIALISATION ####
             self.handle_check_buttons()
+            self.handle_buttons()
+            ##!!! ADD DEFAULT WAVELENGTH LIMITS TO FIELDS
 
         ############################################################
         ############################################################
@@ -76,7 +87,34 @@ def main():
                 self.wavenumbers_only = False
                 self.output_console.append("Option not checked for: Wavenumbers only (first column)")
 
+        def handle_buttons(self):
+            self.Button_CalculateMetastable.setEnabled(False)
+            self.SaveButton_CalculatedMetastable.setEnabled(False)
+
         ######### Update methods for the parameters ########################
+        def update_wavelength_limits(self):
+            try:
+                self.wavelengthlimit_low = float(self.lineEdit_CutSpectra_min.text())
+                self.wavelengthlimit_high = float(self.lineEdit_CutSpectra_max.text())
+            except ValueError:
+                pass
+
+        def check_input_wavelength_limits(self):
+            ''' Check if wavelengthlimit variables have the correct format '''
+            if type(self.wavelengthlimit_low) is float and type(self.wavelengthlimit_high) is float:
+                # message = "ERROR: something wrong with limits -- one or both are None"
+                message = None
+            if self.wavelengthlimit_low > self.wavelengthlimit_high:
+                message = "ERROR: lower limit is larger than the higher limit"
+            
+            ##!!! CHECK IF wavelength limits are outside range of data
+
+            return message
+        
+        def update_fields_wavelength_limits(self):
+            self.lineEdit_CutSpectra_min.setText(str(self.wavelengthlimit_low))
+            self.lineEdit_CutSpectra_max.setText(str(self.wavelengthlimit_high))
+        
         def update_ratio_at_PSS(self):
             try:
                 self.stable_at_PSS_percent = float(self.lineEdit_StableatPSS.text())  # Convert the input to a float
@@ -145,9 +183,9 @@ def main():
                     (self.loaded_wavelengths_PSS, 
                      self.loaded_wavenumbers_PSS, 
                      self.loaded_spectrum_PSS) = LoadData.load_spectrum(self.loaded_data, self.wavenumbers_only)
-
                 else:
                     pass
+                self.retrieve_loaded_wavelength_limits()
                 self.output_console.append(f"{file_desc} file {file_name} loaded successfully!")
 
             except Exception as e:
@@ -161,22 +199,89 @@ def main():
 
         def interpolate_spectra(self):
             ''' Interpolate spectra over wavelengths of Stable data '''
+            ##!!! IMPROVE: select smallest wavelength range of Stable and PSS data in case they are different
+            
             self.processed_wavelengths = self.loaded_wavelengths_Stable
             self.processed_wavenumbers = self.loaded_wavenumbers_Stable
 
-            self.processed_spectra['Stable'] = np.interp(self.processed_wavenumbers, 
-                                                         self.loaded_wavenumbers_Stable,
+            self.processed_spectra['Stable'] = np.interp(self.processed_wavelengths, 
+                                                         self.loaded_wavelengths_Stable,
                                                          self.loaded_spectrum_Stable)
 
-            self.processed_spectra['PSS'] = np.interp(self.processed_wavenumbers,
-                                                      self.loaded_wavenumbers_PSS,
+            self.processed_spectra['PSS'] = np.interp(self.processed_wavelengths,
+                                                      self.loaded_wavelengths_PSS,
                                                       self.loaded_spectrum_PSS)
-            
+
+        def check_if_loaded_data(self):
+            if self.loaded_spectrum_Stable is None or self.loaded_spectrum_PSS is None:
+                message = "ERROR: please load both spectra first"
+            else:
+                message = None
+            return message
+        
+        def reset_wavelength_limits(self):
+            message = self.check_if_loaded_data()
+            if message is None:
+                self.retrieve_loaded_wavelength_limits()
+                self.output_console.append("Reset wavelength limits")
+            else:
+                self.output_console.append(f"{message}")
+                return
+        
+        def retrieve_loaded_wavelength_limits(self):
+            if self.loaded_spectrum_Stable is not None and self.loaded_spectrum_PSS is not None:
+                self.wavelengthlimit_low = max([self.loaded_wavelengths_Stable[0],
+                                                self.loaded_wavelengths_PSS[0]])
+                self.wavelengthlimit_high = min([self.loaded_wavelengths_Stable[-1],
+                                                self.loaded_wavelengths_PSS[-1]])
+                self.update_fields_wavelength_limits()
+        
+        def retrieve_indices_wavelength_limits(self):
+            ''' Find indices that belong to wavelength range '''
+            wl_low = self.wavelengthlimit_low
+            wl_high = self.wavelengthlimit_high
+            low = np.argmin(np.abs(self.processed_wavelengths.astype(float) - wl_low))
+            high = np.argmin(np.abs(self.processed_wavelengths.astype(float) - wl_high))
+            return low, high
+        
+        def cut_spectra(self):
+            low, high = self.retrieve_indices_wavelength_limits()
+
+            self.processed_wavelengths = self.processed_wavelengths[low:high] ## cut to range
+            self.processed_wavenumbers = LoadData.wavenumbers_from_wavelengths(self.processed_wavelengths) ## cut to range
+
+            self.processed_spectra['Stable'] = self.processed_spectra['Stable'][low:high] ## cut to wavelength range
+            self.processed_spectra['PSS'] = self.processed_spectra['PSS'][low:high] ## cut to wavelength range
+
         def process_spectra(self):
-            ## Add any processing before interpolation
+            ''' Processing '''
+            message = self.check_if_loaded_data()
             
-            ## Interpolation
-            self.interpolate_spectra()
+            if message is None:
+                message = self.check_input_wavelength_limits()
+            else:
+                self.output_console.append(f"{message}")
+                return
+
+            if message is None:
+                try:
+                    self.interpolate_spectra() ## Interpolation
+                    self.cut_spectra()
+    
+                    if 'Stable' in self.processed_spectra and 'PSS' in self.processed_spectra:
+                        self.output_console.append(f"Processed spectra from {self.wavelengthlimit_low}-{self.wavelengthlimit_high} nm")
+                        self.plot_spectra("processed")
+    
+                        self.Button_CalculateMetastable.setEnabled(True) ## Activate Calculate button
+                        self.SaveButton_CalculatedMetastable.setEnabled(False) ## Deactivate Save button
+                    
+                except Exception as e:
+                    self.Button_CalculateMetastable.setEnabled(False) ## Deactivate Calculate button
+                    self.SaveButton_CalculatedMetastable.setEnabled(False) ## Deactivate Save button
+                    self.output_console.append(f"ERROR: Processing of spectra failed: {e}.")
+                    return
+            else:
+                self.output_console.append(f"{message}")
 
         def calculate_metastable(self):
             if self.loaded_spectrum_Stable is None or self.loaded_spectrum_PSS is None:
@@ -190,71 +295,89 @@ def main():
             if self.sum_of_fractions != float(1):
                 self.output_console.append("ERROR: Ratios do not add up to 1")
                 return
-
-            try:
-                self.process_spectra()
-            except Exception as e:
-                self.output_console.append(f"ERROR: Processing of spectra failed: {e}.")
-                return
             
             try:
                 PSS_spectrum = self.processed_spectra['PSS']
                 stable_fraction = self.stable_at_PSS_fraction
                 stable_spectrum = self.processed_spectra['Stable']
                 metastable_before_rescaling = PSS_spectrum - (stable_fraction * stable_spectrum)
-                self.processed_spectra['Calculated_Metastable_before_rescaling'] = metastable_before_rescaling
+                self.calculated_spectra['Calculated_Metastable_before_rescaling'] = metastable_before_rescaling
                 
                 metastable_fraction = self.metastable_at_PSS_fraction
                 metastable_rescaled = metastable_before_rescaling / metastable_fraction
-                self.processed_spectra['Calculated_Metastable'] = metastable_rescaled
+                self.calculated_spectra['Calculated_Metastable'] = metastable_rescaled
                 self.output_console.append("Calculation of Metastable spectrum successful")
                 
-                self.plot_spectra("processed")
+                self.plot_spectra("calculated")
+                self.SaveButton_CalculatedMetastable.setEnabled(True)
                 
                 ##!!! ADD WARNING when calculated Metastable spectrum has (significant) negative values, indicating an error in the used ratio
                 
             except Exception as e:
+                self.Button_CalculateMetastable.setEnabled(True)
+                self.SaveButton_CalculatedMetastable.setEnabled(False)
                 self.output_console.append(f"Calculation failed: {e}.")
                 return
 
         def plot_spectra(self, mode):
             self.ax_main.clear()
             
+            x_mode = "wavelengths"
+            
             if mode == "loaded":
                 if self.loaded_spectrum_Stable is not None:
-                    (x, y) = (self.loaded_wavenumbers_Stable, self.loaded_spectrum_Stable)
+                    x = self.loaded_wavelengths_Stable
+                    y = self.loaded_spectrum_Stable
                     self.ax_main.plot(x, y, label='Stable')
                 if self.loaded_spectrum_PSS is not None:
-                    (x, y) = (self.loaded_wavenumbers_PSS, self.loaded_spectrum_PSS)
+                    x = self.loaded_wavelengths_PSS
+                    y = self.loaded_spectrum_PSS
                     self.ax_main.plot(x, y, label='PSS')
+                self.output_console.append("Plot loaded spectra.")
             
             elif mode == "processed":
-                x = self.processed_wavenumbers
+                x = self.processed_wavelengths
                 if 'Stable' in self.processed_spectra:
                     y = self.processed_spectra['Stable']
                     self.ax_main.plot(x, y, label='Stable')
                 if 'PSS' in self.processed_spectra:
                     y = self.processed_spectra['PSS']
                     self.ax_main.plot(x, y, label='PSS')
-                if 'Calculated_Metastable_before_rescaling' in self.processed_spectra:
-                    y = self.processed_spectra['Calculated_Metastable_before_rescaling']
+                self.output_console.append("Plot processed spectra.")
+
+            elif mode == "calculated":
+                x = self.processed_wavelengths
+                if 'Stable' in self.processed_spectra:
+                    y = self.processed_spectra['Stable']
+                    self.ax_main.plot(x, y, label='Stable')
+                if 'PSS' in self.processed_spectra:
+                    y = self.processed_spectra['PSS']
+                    self.ax_main.plot(x, y, label='PSS')
+                if 'Calculated_Metastable_before_rescaling' in self.calculated_spectra:
+                    y = self.calculated_spectra['Calculated_Metastable_before_rescaling']
                     self.ax_main.plot(x, y, '--', color = 'green',
                                       label=f'Calculated Metastable ({self.metastable_at_PSS_percent:.1f}%) (before rescaling)')
-                if 'Calculated_Metastable' in self.processed_spectra:
-                    y = self.processed_spectra['Calculated_Metastable']
+                if 'Calculated_Metastable' in self.calculated_spectra:
+                    y = self.calculated_spectra['Calculated_Metastable']
                     self.ax_main.plot(x, y, '-', color = 'green',
                                       label='Calculated Metastable')
 
-            self.ax_main.invert_xaxis()
-            self.ax_main.set_xlabel("Wavenumber (cm⁻¹)")
+                self.output_console.append("Plot calculated spectra.")
+
+            if x_mode == "wavenumbers":
+                self.ax_main.invert_xaxis()
+                self.ax_main.set_xlabel("Wavenumber (cm⁻¹)")
+            else:
+                self.ax_main.set_xlabel("Wavelength (nm)")
+
             self.ax_main.set_ylabel("Epsilon")
             self.ax_main.set_title("Spectra")
             self.ax_main.legend()
-                ##!!! move legend next to plot area (need gridspec)
+
             self.canvas_main.draw()
         
         def save_calculated_metastable(self):
-            if not 'Calculated_Metastable' in self.processed_spectra:
+            if not 'Calculated_Metastable' in self.calculated_spectra:
                 self.output_console.append("ERROR: First calculate the spectrum please.")
                 return
             
@@ -262,8 +385,8 @@ def main():
             wavenumbers = self.processed_wavenumbers
             stable = self.processed_spectra['Stable']
             pss = self.processed_spectra['PSS']
-            metastable_before_rescaling = self.processed_spectra['Calculated_Metastable_before_rescaling']
-            metastable = self.processed_spectra['Calculated_Metastable']
+            metastable_before_rescaling = self.calculated_spectra['Calculated_Metastable_before_rescaling']
+            metastable = self.calculated_spectra['Calculated_Metastable']
 
             fullpath, _ = QFileDialog.getSaveFileName(self, "Save Calculated Metastable Spectrum", "",
                                                       "CSV Files (*.csv);;DAT Files (*.dat)")
@@ -277,9 +400,9 @@ def main():
                     f'Calculated Metastable (before re-scaling ({self.metastable_at_PSS_percent:.1f} pct))': metastable_before_rescaling,
                     'Calculated Metastable': metastable
                 })
-                df_inv = df[::-1] ## invert dataframe so that wavelength increases downward
-                df_inv.drop('Wavenumbers (cm-1)', axis=1).to_csv(path+'.csv', sep=',', index=False) ## csv file (without Wavenumbers)
-                df_inv.to_csv(path+'.dat', sep='\t', index=False) ## dat file (including Wavenumbers)
+                df.drop('Wavenumbers (cm-1)', axis=1).to_csv(path+'.csv', sep=',', index=False) ## csv file (without Wavenumbers)
+                df.to_csv(path+'.dat', sep='\t', index=False) ## dat file (including Wavenumbers)
+
                 self.output_console.append(f"Calculated Metastable spectrum saved to {path}.csv and .dat")
             else:
                 self.output_console.append("Nothing was saved")
