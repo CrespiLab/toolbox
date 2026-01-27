@@ -45,7 +45,7 @@ Homepage = "https://github.com/CrespiLab/toolbox"
 
 [project.scripts]
 quickplotabs = "QuickPlotAbs.cli:main"
-tddftplotter = "plotter_TDDFT.cli:main"
+tddftplotter = "plotter_TDDFT.UV_spectrum:main"
 spectrafitter_single = "SpectraFitter.SpectraFitter_single:main"
 spectrafitter = "SpectraFitter.SpectraFitter:main"
 psscalc = "PSS_Calculator.PSS_Calculator:main"

@@ -69,8 +69,8 @@ def energy_to_boltzmann(energies, T=298.15):
 
 def main():
     parser = argparse.ArgumentParser(
-                        prog='UV_plotter',
-                        description='Plots UV from different ESS outputs (ORCA, OpenQP)',)
+                        prog='UVVIS_TDDFT_plotter',
+                        description='Plots UV-Vis spectra from different Electronic Structure System (ESS) outputs (ORCA, OpenQP, GAMESS)',)
 
     parser.add_argument('filenames', nargs='+', help='Output file(s) to process')
     parser.add_argument('--ess', default='ORCA', help='Electronic structure system that produced the output file. Available: \
