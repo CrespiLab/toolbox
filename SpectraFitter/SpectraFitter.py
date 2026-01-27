@@ -5,8 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt5.QtWidgets import (QFileDialog,    
-    # QMessageBox,
+from PyQt5.QtWidgets import (QFileDialog,
     QApplication, QMainWindow, 
 )
 from SpectraFitter.tools.FitPekarianGaussianHybrid import iterative_pekaria_fit
@@ -25,6 +24,8 @@ def main():
             self.k_max = 10
             self.center_deviation_threshold = 100
             self.manual_mode = True
+            self.starting_peaks_string = ""
+            self.starting_number_of_peaks = 8
             self.worker = None
             self.initUI()
         
@@ -70,6 +71,7 @@ def main():
             self.output_console = self.textEdit_OutputConsole
             
             #### INITIALISATION ####
+            self.SetButtons() # Set buttons defaults
             self.SetTextfields() # Set text fields defaults
             self.handle_radio_selections()
 
@@ -128,6 +130,10 @@ def main():
                 self.Button_Fit_FirstLastWeights.setEnabled(False)
                 self.Button_FitBatch.setEnabled(True)
 
+        def SetButtons(self):
+            self.radioButton_Single.setEnabled(False) ## feature not available yet
+            self.radioButton_Batch.setEnabled(False) ## feature not available yet
+
         def SetTextfields(self):
             """ Display experimental parameters in text fields """
             # self.lineEdit_MaxPFs.setText(str(self.max_peaks))
@@ -140,8 +146,7 @@ def main():
             if self.manual_mode:
                 self.Button_FitMode.setText("Switch to Auto Mode")
                 self.textEdit_centers.setEnabled(True)
-                # self.textEdit_centers.setPlaceholderText("23000, 28000, 32000")
-                self.textEdit_centers.setText("23000, 28000, 32000") ##!!! define with default
+                self.textEdit_centers.setText(self.starting_peaks_string) ## defined upon loading data
                 self.labelDescr_MaxPFs.setEnabled(False)
                 self.lineEdit_MaxPFs.clear()
                 self.lineEdit_MaxPFs.setEnabled(False)
@@ -197,12 +202,13 @@ def main():
             """Load a file based on the file description."""
             try:
                 options = QFileDialog.Options()
+                
                 ## File dialog for selecting files
                 file_name, _ = QFileDialog.getOpenFileName(self, f"Load {file_desc} File", "",
                                                            "CSV, DAT Files (*.csv *dat);;DAT Files (*.dat);;All Files (*)", 
                                                            options=options)
                 if not file_name:
-                    # QMessageBox.warning(self, "Error", f"No {file_desc} file selected")
+
                     self.output_console.append(f"No {file_desc} file selected")
 
                     return
@@ -231,12 +237,45 @@ def main():
                 else:
                     pass
                 self.output_console.append(f"{file_desc} file {file_name} loaded successfully!")
+                
+                self.wavenumbers = LoadData.loaded_wavenumbers ## define wavenumbers
 
             except Exception as e:
                 self.output_console.append(f"Failed to load {file_desc} file {file_name}: {e}")
+            
+            try:
+                self.plot_loaded_data()
+            except Exception as e:
+                self.output_console.append(f"Plotting loaded data went wrong: {e}")                
+            
+            try:
+                self.find_starting_peaks()
+            except Exception as e:
+                self.output_console.append(f"Finding starting peaks went wrong: {e}")
         
         #####################################################################
         #####################################################################
+
+        def find_starting_peaks(self):
+            ''' Find a number of starting peaks for Manual Mode '''
+            range_left = self.wavenumbers[0]
+            range_right = self.wavenumbers[-1]
+            
+            number_of_peaks = self.starting_number_of_peaks
+
+            peaks = np.round(np.linspace(range_left, range_right, number_of_peaks)).astype(int) ## np array
+            peaks_stringelements = [str(peak) for peak in list(peaks)] ## list of strings
+
+            peaks_string = ''
+            for i in range(0,len(peaks_stringelements)):
+                peaks_string = peaks_string+peaks_stringelements[i]
+                if i is not len(peaks_stringelements)-1:
+                    peaks_string = peaks_string+", "
+            
+            self.starting_peaks = peaks ## numpy array
+            self.starting_peaks_string = peaks_string ## single string of comma-separated peak values
+            
+            self.update_widgets_mode() ## update centers text field
 
         def set_fit_parameters(self):
             ''' Calculate necessary variables for the fit. '''
@@ -249,13 +288,15 @@ def main():
                 return
             self.type_of_spectrum = "weights_first"
             
-            self.wavenumbers = LoadData.loaded_wavenumbers
+            # self.wavenumbers = LoadData.loaded_wavenumbers
             self.abs = LoadData.loaded_first_spectrum
             self.number_of_spectra = LoadData.loaded_number_of_spectra
             self.index = 0
             self.set_fit_parameters()
             
             if self.manual_mode:
+                ##!!! ALSO USE A WORKER
+                
                 centers = self.get_centers()
                 try:
                     popt, _, v_fit, a_fit, comps = iterative_pekaria_fit(self.wavenumbers, self.abs,
@@ -285,13 +326,15 @@ def main():
                 return
             self.type_of_spectrum = "weights_last"
             
-            self.wavenumbers = LoadData.loaded_wavenumbers
+            # self.wavenumbers = LoadData.loaded_wavenumbers
             self.abs = LoadData.loaded_last_spectrum
             self.number_of_spectra = LoadData.loaded_number_of_spectra
             self.index = self.number_of_spectra-1
             self.set_fit_parameters()
             
             if self.manual_mode:
+                ##!!! ALSO USE A WORKER
+                
                 centers = self.get_centers()
                 try:
                     popt, _, v_fit, a_fit, comps = iterative_pekaria_fit(self.wavenumbers, self.abs,
@@ -328,6 +371,18 @@ def main():
                 self.output_console.append("✅ Last fit stored.")
             else:
                 self.output_console.append("⚠️ No last fit available to store.")
+
+        def plot_loaded_data(self):
+            ##!!! MERGE WITH plot_results and plot_fit_step
+            self.ax_fit.clear()
+            
+            for i in LoadData.loaded_spectra.T:
+                self.ax_fit.plot(self.wavenumbers, i)
+                ##!!! ADD COLOUR GRADIENT (put it in a general config file for /toolbox)
+            self.ax_fit.set_title(f"Loaded Data")
+            # self.ax_fit.legend()
+            self.ax_fit.invert_xaxis()
+            self.canvas_fit.draw()
     
         def plot_fit_step(self, v_fit, a_fit, comps, centers, fitted_centers, residuals, index, total, a_exp):
             self.ax_fit.clear()
@@ -367,7 +422,10 @@ def main():
                 self.ax_fit.set_title(f"Fit Result (Spectrum {index+1}/{total})" + (" (Auto)" if not self.manual_mode else " (Manual)"))
             elif self.type_of_spectrum == "single":
                 self.ax_fit.set_title("Fit Result (Single)" + (" (Auto)" if not self.manual_mode else " (Manual)"))
+            
+            ##!!! PUT LEGEND NEXT TO PLOT (need gridspec)
             self.ax_fit.legend()
+            
             self.ax_fit.invert_xaxis()
             self.canvas_fit.draw()
     

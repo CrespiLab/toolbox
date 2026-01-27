@@ -7,7 +7,7 @@ import pandas as pd
 loaded_data = None
 loaded_spectra = None
 
-##!!! CONVERT TO CLASS CALLED Loader
+##!!! TO DO: combine with other load_data.py modules and make a general Loader Class for /toolbox
 
 def load_spectra(file_name, file_ext, file_desc):
     if file_ext == ".csv":
