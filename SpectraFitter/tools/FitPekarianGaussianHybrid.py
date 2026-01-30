@@ -82,6 +82,17 @@ def iterative_pekaria_fit(v, a, v_centers, k_max=20):
     
     return popt, pcov, v_fit, a_fit, components
 
+def list_to_string(my_list):
+    my_list_stringelements = [str(i) for i in my_list] ## list of strings
+
+    my_string = ''
+    for i in range(0,len(my_list_stringelements)):
+        my_string = my_string+my_list_stringelements[i]
+        if i is not len(my_list_stringelements)-1:
+            my_string = my_string+", "
+    
+    return my_string
+
 def residual_driven_peak_finder(v, a, max_peaks, residual_threshold, k_max,
                                 center_deviation_threshold,
                                 cancel_flag=None, output_console=None):
@@ -123,17 +134,37 @@ def residual_driven_peak_finder(v, a, max_peaks, residual_threshold, k_max,
                 QApplication.processEvents()
             break
 
-        peaks, _ = find_peaks(residuals, height=max_residual * 0.5, distance=20)
+        peaks, properties = find_peaks(residuals, height=residual_threshold, distance=20) ## minimum height of peak in residuals defined by user
         if len(peaks) == 0:
             if output_console:
                 output_console.append("No new peaks found in residuals. Stopping.")
                 QApplication.processEvents()
             break
+        else:
+            peak_heights = properties["peak_heights"]
+            sorted_peaks = [x for _, x in sorted(zip(peak_heights, peaks))][::-1] ## sort from highest to lowest peak
+            new_centers = [v[i] for i in sorted_peaks]
+            new_centers_string = list_to_string(new_centers) ## list of strings
 
-        new_center = v[peaks[0]]
-        if any(abs(new_center - c) < center_deviation_threshold for c in centers):
             if output_console:
-                output_console.append(f"🔁 New center {new_center:.1f} too close to existing peaks. Stopping.")
+                output_console.append(f"New peaks found in residuals at: {new_centers_string} cm⁻¹")
+                QApplication.processEvents()
+
+        stop_stop = "no"
+        for new_center in new_centers:
+            if any(abs(new_center - c) < center_deviation_threshold for c in centers):
+                if output_console:
+                    output_console.append(f"🔁 New center {new_center:.1f} too close to existing peaks. Skipping.")
+                    QApplication.processEvents()
+                if len(new_centers) == 1:
+                    stop_stop = "yes"
+            else:
+                new_center = new_center
+                break
+        
+        if stop_stop == "yes":
+            if output_console:
+                output_console.append(f"🔁 Remaining new center {new_center:.1f} too close to existing peaks. Stopping.")
                 QApplication.processEvents()
             break
 
