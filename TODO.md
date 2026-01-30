@@ -2,7 +2,6 @@
 
 ## To Do
 - [ ] Add Python script for fitting of exponential decay
-- [ ] 
 
 
 ## In Progress :)
@@ -13,5 +12,9 @@
 - [ ] Improve SpectraFitter:
   - [x] Improve Auto Mode
   - [ ] Run Manual Mode on a separate thread (like Auto Mode)
+  - [ ] Plot results in GUI
+
+- [ ] Improve PSS_Calculator
+  - [ ] Add feature to calculate ratio of Stable/Metastable isomers at any PSS
 
 ## Completed ✓
