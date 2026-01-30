@@ -10,4 +10,8 @@
   - [x] add options for GAMESS and OpenQP, among other things
   - [ ] integrate plotter_tddft.py functions into main UV_spectrum.py: options to obtain vertical transitions as well as plots
 
+- [ ] Improve SpectraFitter:
+  - [x] Improve Auto Mode
+  - [ ] Run Manual Mode on a separate thread (like Auto Mode)
+
 ## Completed ✓
