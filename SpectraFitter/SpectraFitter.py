@@ -20,7 +20,7 @@ def main():
             self.setupUi(self)
             
             self.max_peaks = 10
-            self.threshold_percent = 0.1
+            self.threshold_fraction = 0.001
             self.k_max = 10
             self.center_deviation_threshold = 100
             self.manual_mode = True
@@ -137,7 +137,7 @@ def main():
         def SetTextfields(self):
             """ Display experimental parameters in text fields """
             # self.lineEdit_MaxPFs.setText(str(self.max_peaks))
-            self.lineEdit_Threshold.setText(str(self.threshold_percent))
+            self.lineEdit_Threshold.setText(str(self.threshold_fraction))
             self.lineEdit_kmax.setText(str(self.k_max))
             self.lineEdit_CenterDeviation.setText(str(self.center_deviation_threshold))
             self.update_widgets_mode()
@@ -172,7 +172,7 @@ def main():
 
         def update_Threshold(self):
             try:
-                self.threshold_percent = float(self.lineEdit_Threshold.text())  # Convert the input to a float
+                self.threshold_fraction = float(self.lineEdit_Threshold.text())  # Convert the input to a float
             except ValueError:
                 pass  # Handle the case where the input is not a valid number
 
@@ -279,8 +279,7 @@ def main():
 
         def set_fit_parameters(self):
             ''' Calculate necessary variables for the fit. '''
-            self.threshold_fraction = self.threshold_percent/100
-            self.threshold_absolute = self.threshold_fraction * np.max(self.abs)
+            self.residuals_threshold = self.threshold_fraction
 
         def fit_first_spectrum(self):
             if LoadData.loaded_spectra is None:
@@ -312,7 +311,7 @@ def main():
                     self.output_console.append(f"❌ First spectrum fit error: {e}")
             else:
                 self.worker = FitWorker(
-                    self.wavenumbers, self.abs, self.max_peaks, self.threshold_absolute,
+                    self.wavenumbers, self.abs, self.max_peaks, self.residuals_threshold,
                     self.k_max, self.center_deviation_threshold
                 )
                 self.worker.progress.connect(self.output_console.append)
@@ -350,7 +349,7 @@ def main():
                     self.output_console.append(f"❌ Last spectrum fit error: {e}")
             else:
                 self.worker = FitWorker(
-                    self.wavenumbers, self.abs, self.max_peaks, self.threshold_absolute,
+                    self.wavenumbers, self.abs, self.max_peaks, self.residuals_threshold,
                     self.k_max, self.center_deviation_threshold,
                 )
                 self.worker.progress.connect(self.output_console.append)
@@ -400,7 +399,7 @@ def main():
             self.ax_res.clear()
             self.ax_res.plot(self.wavenumbers, residuals, color='red')
             self.ax_res.axhline(0, color='black', linestyle='--')
-            self.ax_res.set_title("Residuals")
+            self.ax_res.set_title("Relative Residuals")
             self.ax_res.invert_xaxis()
             self.canvas_res.draw()
         
@@ -433,8 +432,8 @@ def main():
             self.ax_res.plot(self.wavenumbers, residuals, color='red')
             self.ax_res.axhline(0, color='black', linestyle='--')
             self.ax_res.set_xlabel("Wavenumber (cm⁻¹)")
-            self.ax_res.set_ylabel("Residuals")
-            self.ax_res.set_title("Residuals (Experimental - Fit)")
+            self.ax_res.set_ylabel("Relative Residuals")
+            self.ax_res.set_title("Relative Residuals: (Exp - Fit) / max(Exp)")
             self.ax_res.invert_xaxis()
             self.canvas_res.draw()
         
@@ -444,6 +443,7 @@ def main():
                 self.output_console.append("❌ Cancel requested...")
     
         def on_fit_finished(self, result):
+            self.output_console.append("Fit finished!")
             popt, centers, v_fit, a_fit, residuals, comps = result
             self.assign_temp_fit(a_fit)
             self.plot_results(v_fit, a_fit, comps, centers, residuals)

@@ -479,7 +479,7 @@ class Ui_MainWindow(object):
         self.labelDescr_PeakSelectionMode.setText(_translate("MainWindow", "Peak Selection:"))
         self.labelDescr_Centers.setText(_translate("MainWindow", "<html><head/><body><p>Peak Centers (cm<span style=\" vertical-align:super;\">-1</span>), comma-separated:</p></body></html>"))
         self.labelDescr_MaxPFs.setText(_translate("MainWindow", "Max PFs (Auto Mode):"))
-        self.labelDescr_Threshold.setText(_translate("MainWindow", "Residuals Threshold (% of max):"))
+        self.labelDescr_Threshold.setText(_translate("MainWindow", "Residuals Threshold:"))
         self.labelDescr_kmax.setText(_translate("MainWindow", "k_max:"))
         self.labelDescr_CenterDeviation.setText(_translate("MainWindow", "<html><head/><body><p>Center Deviation Threshold (cm<span style=\" vertical-align:super;\">-1</span>):</p></body></html>"))
         self.groupBox_3.setTitle(_translate("MainWindow", "Fit"))

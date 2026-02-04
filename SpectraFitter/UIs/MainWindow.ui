@@ -592,7 +592,7 @@
        </font>
       </property>
       <property name="text">
-       <string>Residuals Threshold (% of max):</string>
+       <string>Residuals Threshold:</string>
       </property>
      </widget>
      <widget class="QLineEdit" name="lineEdit_kmax">

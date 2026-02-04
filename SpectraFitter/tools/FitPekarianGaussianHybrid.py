@@ -120,9 +120,10 @@ def residual_driven_peak_finder(v, a, max_peaks, residual_threshold, k_max,
             break
 
         interp_fit = interp1d(v_fit, a_fit, kind='linear', bounds_error=False, fill_value="extrapolate")
-        residuals = a - interp_fit(v)
+        residuals_absolute = a - interp_fit(v) ## difference between experimental Abs/epsilon and value from fit
+        max_absorbance = np.max(np.abs(a))
+        residuals = (residuals_absolute) / max_absorbance ## residuals relative to maximum Abs
         max_residual = np.max(np.abs(residuals))
-        # max_residual = np.max(residuals)
 
         if output_console:
             output_console.append(f"Cycle {iteration+1}: max residual = {max_residual:.4f}")

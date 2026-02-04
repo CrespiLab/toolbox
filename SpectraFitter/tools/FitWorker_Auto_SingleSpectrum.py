@@ -12,12 +12,12 @@ class FitWorker(QThread):
     progress = pyqtSignal(str)
     interrupted = pyqtSignal(str)
 
-    def __init__(self, v, a, max_peaks, threshold_absolute, k_max, center_deviation_threshold):
+    def __init__(self, v, a, max_peaks, threshold, k_max, center_deviation_threshold):
         super().__init__()
         self.v = v
         self.a = a
         self.max_peaks = max_peaks
-        self.threshold_absolute = threshold_absolute
+        self.residuals_threshold = threshold
         self.k_max = k_max
         self.center_deviation_threshold = center_deviation_threshold
         self._is_running = True
@@ -28,7 +28,7 @@ class FitWorker(QThread):
 
         try:
             result = residual_driven_peak_finder(
-                self.v, self.a, self.max_peaks, self.threshold_absolute,
+                self.v, self.a, self.max_peaks, self.residuals_threshold,
                 self.k_max, self.center_deviation_threshold,
                 cancel_flag=cancel_flag, output_console=self  # redirect messages to self.progress.emit
             )
