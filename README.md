@@ -1,5 +1,5 @@
 # tools
-**October 7<sup>th</sup>, 2025**
+**February 5<sup>th</sup>, 2026**
 
 Package containing miscellaneous useful scripts:
 - QuickPlotAbs: quickly plot absorption spectra from ASCII files
@@ -8,6 +8,7 @@ Package containing miscellaneous useful scripts:
   -  molgeom: retrieve geometrical properties of molecules, e.g., obtain, distances, angles, and dihedral angles
   -  reorient: perform rotational operations on geometries of molecules
 - SpectraFitter: fit Gaussian shapes to experimental spectra to obtain smooth curves useful for further processing
+- PSS_Calculator: retrieve absorption spectrum of metastable isomer from stable and PSS spectrum together with ratio at PSS
 
 # Installation
 ## Anaconda Powershell Prompt
@@ -38,4 +39,10 @@ TBA
 To start the program, use the command:
 ```
 spectrafitter
+```
+
+## PSS_Calculator
+To start the program, use the command:
+```
+psscalc
 ```
