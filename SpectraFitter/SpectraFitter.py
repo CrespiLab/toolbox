@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtWidgets import (QFileDialog,
     QApplication, QMainWindow, 
@@ -57,13 +58,19 @@ def main():
             ############################################################
             ### Plot Areas ###
             ##!!! change to using class MplCanvas in separate .py
-            self.fig_fit, self.ax_fit = plt.subplots(figsize=(8, 4))
+            
+            self.fig_fit = plt.figure(figsize=(8, 6))
+            self.fig_fit.set_constrained_layout(True)
+            self.gs_fit = gridspec.GridSpec(3, 3, figure=self.fig_fit)
+            self.ax_fit = self.fig_fit.add_subplot(self.gs_fit[0:2, 0:2])
+            self.ax_legend = self.fig_fit.add_subplot(self.gs_fit[0:2, 2]) # separate subplot for the legend
+            self.ax_res = self.fig_fit.add_subplot(self.gs_fit[2, 0:2])
+            
             self.canvas_fit = FigureCanvas(self.fig_fit)
             self.verticalLayout_Plot.addWidget(self.canvas_fit)
+            for i in [self.ax_fit, self.ax_legend, self.ax_res]:
+                i.axis('off') # turn off axes
 
-            self.fig_res, self.ax_res = plt.subplots(figsize=(8, 2))
-            self.canvas_res = FigureCanvas(self.fig_res)
-            self.verticalLayout_Plot.addWidget(self.canvas_res)
             ############################################################
             
             self.Button_CancelFit.clicked.connect(self.cancel_fit)
@@ -378,9 +385,11 @@ def main():
             for i in LoadData.loaded_spectra.T:
                 self.ax_fit.plot(self.wavenumbers, i)
                 ##!!! ADD COLOUR GRADIENT (put it in a general config file for /toolbox)
-            self.ax_fit.set_title(f"Loaded Data")
-            # self.ax_fit.legend()
+            self.ax_fit.set_title("Loaded Data")
             self.ax_fit.invert_xaxis()
+            
+            ##!!! ADD LEGEND
+            
             self.canvas_fit.draw()
     
         def plot_fit_step(self, v_fit, a_fit, comps, centers, fitted_centers, residuals, index, total, a_exp):
@@ -392,16 +401,23 @@ def main():
             self.ax_fit.plot(v_fit, comps[-1], '--', label="Tail")
             self.ax_fit.plot(v_fit, a_fit, label="Fit", color='orange')
             self.ax_fit.set_title(f"Fit Result (Spectrum {index+1}/{total}) (Manual)")
-            self.ax_fit.legend()
             self.ax_fit.invert_xaxis()
-            self.canvas_fit.draw()
-    
+            
+            ########## LEGEND ##########
+            handles, labels = self.ax_fit.get_legend_handles_labels()
+            legend = self.ax_legend.legend(handles, labels,loc='center left', 
+                                      bbox_to_anchor=(0.0, 0.5))
+            legend.get_frame().set_linewidth(0)  # Turn off legend box
+            self.ax_legend.axis('off') # turn off axes
+            ############################
+            
             self.ax_res.clear()
             self.ax_res.plot(self.wavenumbers, residuals, color='red')
             self.ax_res.axhline(0, color='black', linestyle='--')
             self.ax_res.set_title("Relative Residuals")
             self.ax_res.invert_xaxis()
-            self.canvas_res.draw()
+            
+            self.canvas_fit.draw()
         
         def plot_results(self, v_fit, a_fit, comps, centers, residuals):
             ##!!! MERGE THIS PLOT FUNCTION WITH plot_fit_step
@@ -421,13 +437,16 @@ def main():
                 self.ax_fit.set_title(f"Fit Result (Spectrum {index+1}/{total})" + (" (Auto)" if not self.manual_mode else " (Manual)"))
             elif self.type_of_spectrum == "single":
                 self.ax_fit.set_title("Fit Result (Single)" + (" (Auto)" if not self.manual_mode else " (Manual)"))
-            
-            ##!!! PUT LEGEND NEXT TO PLOT (need gridspec)
-            self.ax_fit.legend()
-            
-            self.ax_fit.invert_xaxis()
-            self.canvas_fit.draw()
-    
+            self.ax_fit.invert_xaxis()            
+
+            ########## LEGEND ##########
+            handles, labels = self.ax_fit.get_legend_handles_labels()
+            legend = self.ax_legend.legend(handles, labels,loc='center left', 
+                                      bbox_to_anchor=(0.0, 0.5))
+            legend.get_frame().set_linewidth(0)  # Turn off legend box
+            self.ax_legend.axis('off') # turn off axes
+            ############################
+                
             self.ax_res.clear()
             self.ax_res.plot(self.wavenumbers, residuals, color='red')
             self.ax_res.axhline(0, color='black', linestyle='--')
@@ -435,7 +454,8 @@ def main():
             self.ax_res.set_ylabel("Relative Residuals")
             self.ax_res.set_title("Relative Residuals: (Exp - Fit) / max(Exp)")
             self.ax_res.invert_xaxis()
-            self.canvas_res.draw()
+            
+            self.canvas_fit.draw()
         
         def cancel_fit(self):
             if self.worker and self.worker.isRunning():

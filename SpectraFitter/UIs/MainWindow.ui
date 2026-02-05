@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1050</width>
+    <width>1373</width>
     <height>920</height>
    </rect>
   </property>
@@ -1042,7 +1042,7 @@
      <rect>
       <x>400</x>
       <y>10</y>
-      <width>640</width>
+      <width>940</width>
       <height>900</height>
      </rect>
     </property>
@@ -1070,9 +1070,9 @@
     <widget class="QTextEdit" name="textEdit_OutputConsole">
      <property name="geometry">
       <rect>
-       <x>90</x>
+       <x>130</x>
        <y>740</y>
-       <width>480</width>
+       <width>680</width>
        <height>150</height>
       </rect>
      </property>
@@ -1085,7 +1085,7 @@
       <rect>
        <x>10</x>
        <y>10</y>
-       <width>621</width>
+       <width>921</width>
        <height>651</height>
       </rect>
      </property>
@@ -1098,7 +1098,7 @@
     <widget class="QPushButton" name="Button_CancelFit">
      <property name="geometry">
       <rect>
-       <x>280</x>
+       <x>420</x>
        <y>690</y>
        <width>100</width>
        <height>25</height>
