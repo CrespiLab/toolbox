@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
+import numpy as np
 
 loaded_data = None
 loaded_spectra = None
@@ -44,3 +45,22 @@ def wavenumbers_from_wavelengths(wavelengths):
 def wavelengths_from_wavenumbers(wavenumbers):
     wavelengths = 1e7/wavenumbers
     return wavelengths
+
+def check_not_empty(thing):
+    ''' Check if a list or numpy array exists (i.e. is not empty) '''
+    try:
+        if type(thing) == list:
+            if not thing:
+                thing_exists = False
+            else:
+                thing_exists = True
+        elif type(thing) == np.ndarray:
+            if thing.size == 0:
+                thing_exists = False
+            else:
+                thing_exists = True
+        else:
+            print("this thing is something else")
+        return thing_exists
+    except Exception as e:
+        print(f"FAILED to check whether list or numpy array exists: {e}") ##!!! send this to message console somehow (need to make this module a class?)

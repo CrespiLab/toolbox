@@ -20,17 +20,17 @@ def main():
             
             (self.loaded_wavelengths_Stable, 
              self.loaded_wavenumbers_Stable, 
-             self.loaded_spectrum_Stable) = (None, None, None)
+             self.loaded_spectrum_Stable) = ([], [], [])
             
             (self.loaded_wavelengths_PSS, 
              self.loaded_wavenumbers_PSS, 
-             self.loaded_spectrum_PSS) = (None, None, None)
+             self.loaded_spectrum_PSS) = ([], [], [])
             
             self.wavelengthlimit_low = None
             self.wavelengthlimit_high = None
             
-            self.processed_wavelengths = None
-            self.processed_wavenumbers = None
+            self.processed_wavelengths = []
+            self.processed_wavenumbers = []
             self.processed_spectra = {} # keys: 'Stable', 'PSS'
             self.calculated_spectra = {} # keys: 'Calculated_Metastable', 'Calculated_Metastable_before_rescaling'
             
@@ -42,9 +42,9 @@ def main():
             self.initUI()
         
         def initUI(self):
-            self.LoadButton_Stable.clicked.connect(self.load_stable_spectrum)
-            self.LoadButton_PSS.clicked.connect(self.load_PSS_spectrum)
-            self.checkBox_WavenumbersOnly.stateChanged.connect(self.handle_check_buttons)
+            self.LoadButton_Stable.clicked.connect(lambda: self.load_file("Stable Spectrum"))
+            self.LoadButton_PSS.clicked.connect(lambda: self.load_file("PSS Spectrum"))
+            self.checkBox_WavenumbersOnly.stateChanged.connect(self.state_changed_WavenumbersOnly)
 
             self.lineEdit_StableatPSS.textChanged.connect(self.update_ratio_at_PSS)
             
@@ -64,10 +64,6 @@ def main():
             self.fig_main, self.ax_main = plt.subplots(figsize=(8, 4))
             self.canvas_main = FigureCanvas(self.fig_main)
             self.verticalLayout_Plot.addWidget(self.canvas_main)
-
-            # self.fig_res, self.ax_res = plt.subplots(figsize=(8, 2))
-            # self.canvas_res = FigureCanvas(self.fig_res)
-            # self.verticalLayout_Plot.addWidget(self.canvas_res)
             ############################################################
             self.output_console = self.textEdit_OutputConsole
             
@@ -78,14 +74,15 @@ def main():
 
         ############################################################
         ############################################################
-        
+
         def handle_check_buttons(self):
-            if self.checkBox_WavenumbersOnly.isChecked():
-                self.wavenumbers_only = True
-                self.output_console.append("Option checked for: Wavenumbers only (first column)")
-            else:
-                self.wavenumbers_only = False
-                self.output_console.append("Option not checked for: Wavenumbers only (first column)")
+            self.wavenumbers_only = self.checkBox_WavenumbersOnly.isChecked()
+            self.output_console.append(f"Wavenumbers only (first column): {self.wavenumbers_only}")
+
+        def state_changed_WavenumbersOnly(self):
+            self.handle_check_buttons()
+            self.reset_loaded_data()
+            self.output_console.append("Please re-load your Stable and PSS spectra")
 
         def handle_buttons(self):
             self.Button_CalculateMetastable.setEnabled(False)
@@ -102,7 +99,6 @@ def main():
         def check_input_wavelength_limits(self):
             ''' Check if wavelengthlimit variables have the correct format '''
             if type(self.wavelengthlimit_low) is float and type(self.wavelengthlimit_high) is float:
-                # message = "ERROR: something wrong with limits -- one or both are None"
                 message = None
             if self.wavelengthlimit_low > self.wavelengthlimit_high:
                 message = "ERROR: lower limit is larger than the higher limit"
@@ -147,14 +143,6 @@ def main():
 
         ###########################################################################        
         ###########################################################################
-        
-        def load_stable_spectrum(self):
-            self.load_file("Stable Spectrum")
-            self.plot_spectra("loaded")
-
-        def load_PSS_spectrum(self):
-            self.load_file("PSS Spectrum")
-            self.plot_spectra("loaded")
 
         def load_file(self, file_desc):
             """Load a file based on the file description."""
@@ -165,16 +153,21 @@ def main():
                                                            options=options)
                 if not file_name:
                     self.output_console.append(f"No {file_desc} file selected")
-
                     return
-    
                 ##################################################
                 ## Store the file path in the appropriate attribute based on the file type/extension
                 file_ext = os.path.splitext(file_name)[1].lower()
                 
-                ## Load data dependent on file_ext
-                self.loaded_data = LoadData.load_spectra(file_name, file_ext, file_desc)
-                
+                self.loaded_data = LoadData.load_spectra(file_name, file_ext, file_desc) ## Load data dependent on file_ext
+                self.load_spectra(file_desc)
+                self.plot_loaded_spectra()
+                self.retrieve_loaded_wavelength_limits()
+                self.output_console.append(f"{file_desc} file {file_name} loaded successfully!")
+            except Exception as e:
+                self.output_console.append(f"Failed to load {file_desc} file {file_name}: {e}")
+        
+        def load_spectra(self, file_desc):
+            try:
                 if file_desc == "Stable Spectrum":
                     (self.loaded_wavelengths_Stable, 
                      self.loaded_wavenumbers_Stable, 
@@ -185,17 +178,20 @@ def main():
                      self.loaded_spectrum_PSS) = LoadData.load_spectrum(self.loaded_data, self.wavenumbers_only)
                 else:
                     pass
-                self.retrieve_loaded_wavelength_limits()
-                self.output_console.append(f"{file_desc} file {file_name} loaded successfully!")
-
             except Exception as e:
-                self.output_console.append(f"Failed to load {file_desc} file {file_name}: {e}")
-        
+                self.output_console.append(f"Failed to load {file_desc} file: {e}")
+
         #####################################################################
         #####################################################################
         
         def plot_loaded_spectra(self):
-            self.plot_spectra("loaded")
+            try:
+                if LoadData.check_not_empty(self.loaded_spectrum_Stable) or LoadData.check_not_empty(self.loaded_spectrum_PSS):
+                    self.plot_spectra("loaded")
+                else:
+                    self.output_console.append("No loaded spectra available.")
+            except Exception as e:
+                self.output_console.append(f"Failed to plot loaded spectra: {e}")
 
         def interpolate_spectra(self):
             ''' Interpolate spectra over wavelengths of Stable data '''
@@ -212,8 +208,16 @@ def main():
                                                       self.loaded_wavelengths_PSS,
                                                       self.loaded_spectrum_PSS)
 
+        def reset_loaded_data(self):
+            try:
+                self.loaded_spectrum_Stable = []
+                self.loaded_spectrum_PSS = []
+            except Exception as e:
+                self.output_console.append(f"Failed to reset loaded data: {e}")
+
         def check_if_loaded_data(self):
-            if self.loaded_spectrum_Stable is None or self.loaded_spectrum_PSS is None:
+            if not (LoadData.check_not_empty(self.loaded_spectrum_Stable) or
+                    LoadData.check_not_empty(self.loaded_spectrum_PSS)):
                 message = "ERROR: please load both spectra first"
             else:
                 message = None
@@ -230,10 +234,10 @@ def main():
         
         def retrieve_loaded_wavelength_limits(self):
             if self.loaded_spectrum_Stable is not None and self.loaded_spectrum_PSS is not None:
-                self.wavelengthlimit_low = max([self.loaded_wavelengths_Stable[0],
-                                                self.loaded_wavelengths_PSS[0]])
-                self.wavelengthlimit_high = min([self.loaded_wavelengths_Stable[-1],
-                                                self.loaded_wavelengths_PSS[-1]])
+                self.wavelengthlimit_low = float(max([self.loaded_wavelengths_Stable[0],
+                                                self.loaded_wavelengths_PSS[0]]))
+                self.wavelengthlimit_high = float(min([self.loaded_wavelengths_Stable[-1],
+                                                self.loaded_wavelengths_PSS[-1]]))
                 self.update_fields_wavelength_limits()
         
         def retrieve_indices_wavelength_limits(self):
@@ -333,6 +337,7 @@ def main():
                     x = self.loaded_wavelengths_PSS
                     y = self.loaded_spectrum_PSS
                     self.ax_main.plot(x, y, label='PSS')
+                self.ax_main.set_title("Loaded Spectra")
                 self.output_console.append("Plot loaded spectra.")
             
             elif mode == "processed":
@@ -343,6 +348,7 @@ def main():
                 if 'PSS' in self.processed_spectra:
                     y = self.processed_spectra['PSS']
                     self.ax_main.plot(x, y, label='PSS')
+                self.ax_main.set_title("Processed Spectra")
                 self.output_console.append("Plot processed spectra.")
 
             elif mode == "calculated":
@@ -361,7 +367,7 @@ def main():
                     y = self.calculated_spectra['Calculated_Metastable']
                     self.ax_main.plot(x, y, '-', color = 'green',
                                       label='Calculated Metastable')
-
+                self.ax_main.set_title("Calculated Spectra")
                 self.output_console.append("Plot calculated spectra.")
 
             if x_mode == "wavenumbers":
@@ -371,7 +377,6 @@ def main():
                 self.ax_main.set_xlabel("Wavelength (nm)")
 
             self.ax_main.set_ylabel("Epsilon")
-            self.ax_main.set_title("Spectra")
             self.ax_main.legend()
 
             self.canvas_main.draw()

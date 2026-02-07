@@ -171,7 +171,7 @@ class Ui_MainWindow(object):
         font = QtGui.QFont()
         font.setPointSize(10)
         self.checkBox_WavenumbersOnly.setFont(font)
-        self.checkBox_WavenumbersOnly.setChecked(True)
+        self.checkBox_WavenumbersOnly.setChecked(False)
         self.checkBox_WavenumbersOnly.setObjectName("checkBox_WavenumbersOnly")
         self.groupBox_3 = QtWidgets.QGroupBox(self.frame)
         self.groupBox_3.setGeometry(QtCore.QRect(360, 180, 271, 101))
