@@ -7,6 +7,7 @@ from scipy.optimize import minimize_scalar
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
 from PyQt5.QtWidgets import (QFileDialog,
     QApplication, QMainWindow, 
 )
@@ -71,6 +72,8 @@ def main():
             self.ax_res = self.fig_fit.add_subplot(self.gs_fit[2, 0:2])
             
             self.canvas_fit = FigureCanvas(self.fig_fit)
+            self.navigation = NavigationToolbar(self.canvas_fit, self)
+            self.verticalLayout_Plot.addWidget(self.navigation)  # Add the toolbar at the top
             self.verticalLayout_Plot.addWidget(self.canvas_fit)
             for i in [self.ax_fit, self.ax_legend, self.ax_res]:
                 i.axis('off') # turn off axes
@@ -85,6 +88,23 @@ def main():
             self.SetButtons() # Set buttons defaults
             self.SetTextfields() # Set text fields defaults
             self.handle_radio_selections()
+        
+        ############################################################
+        ############################################################
+        
+        def update_plot(self):
+            ''' Re-scale plot according to new data, 
+            and update navigation toolbar so that Home button works correctly '''
+            self.autoScaleY()
+            self.navigation.update()
+        
+        def autoScaleY(self):
+           ''' Reset limits and scale according to new data '''
+           self.ax_fit.relim()
+           self.ax_res.relim()
+           self.ax_fit.autoscale(axis='y')
+           self.ax_res.autoscale(axis='y')
+           self.canvas_fit.draw()
 
         ############################################################
         ############################################################
@@ -394,10 +414,11 @@ def main():
             
             ##!!! ADD LEGEND
             
-            self.canvas_fit.draw()
+            self.update_plot()
     
         def plot_fit_step(self, v_fit, a_fit, comps, centers, fitted_centers, residuals, index, total, a_exp):
             self.ax_fit.clear()
+            
             self.ax_fit.plot(self.wavenumbers, a_exp, label="Experimental", color='black')
             for i, comp in enumerate(comps[:-1]):
                 label = f"PF{i+1}: guess={centers[i]:.0f}, fit={fitted_centers[i]:.0f}"
@@ -414,14 +435,14 @@ def main():
             legend.get_frame().set_linewidth(0)  # Turn off legend box
             self.ax_legend.axis('off') # turn off axes
             ############################
-            
+
             self.ax_res.clear()
             self.ax_res.plot(self.wavenumbers, residuals, color='red')
             self.ax_res.axhline(0, color='black', linestyle='--')
             self.ax_res.set_title("Normalised Residuals")
             self.ax_res.invert_xaxis()
             
-            self.canvas_fit.draw()
+            self.update_plot()
         
         def plot_results(self, v_fit, a_fit, comps, centers, residuals):
             ##!!! MERGE THIS PLOT FUNCTION WITH plot_fit_step
@@ -450,7 +471,7 @@ def main():
             legend.get_frame().set_linewidth(0)  # Turn off legend box
             self.ax_legend.axis('off') # turn off axes
             ############################
-                
+            
             self.ax_res.clear()
             self.ax_res.plot(self.wavenumbers, residuals, color='red')
             self.ax_res.axhline(0, color='black', linestyle='--')
@@ -459,7 +480,7 @@ def main():
             self.ax_res.set_title("Normalised Residuals: (Exp - Fit) / max(Exp)")
             self.ax_res.invert_xaxis()
             
-            self.canvas_fit.draw()
+            self.update_plot()
         
         def cancel_fit(self):
             if self.worker and self.worker.isRunning():
@@ -472,6 +493,8 @@ def main():
             self.assign_temp_fit(a_fit)
             self.plot_results(v_fit, a_fit, comps, centers, residuals)
             interp_residuals = np.interp(v_fit, self.wavenumbers, residuals)
+            
+            ##!!! SAVE INDIVIDUAL PEAKS AS WELL
             self.last_fit_data = pd.DataFrame({
                 'Wavenumber': v_fit,
                 'Fit': a_fit,
@@ -634,8 +657,9 @@ def main():
 
         def show_error(self, message):
             self.ax_fit.clear()
+
             self.ax_fit.text(0.5, 0.5, message, ha='center', va='center', fontsize=12, color='red')
-            self.canvas_fit.draw()
+            self.update_plot()
 
     #########################################################
     app = QApplication.instance() or QApplication(sys.argv)

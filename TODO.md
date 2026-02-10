@@ -3,14 +3,11 @@
 ## To Do
 - [ ] Add Python script for fitting of exponential decay
 
-
 ## In Progress :)
 - [ ] Update plotter_TDDFT:
-  - [x] add options for GAMESS and OpenQP, among other things
   - [ ] integrate plotter_tddft.py functions into main UV_spectrum.py: options to obtain vertical transitions as well as plots
 
 - [ ] Improve SpectraFitter:
-  - [x] Improve Auto Mode
   - [ ] Run Manual Mode on a separate thread (like Auto Mode)
   - [ ] Update plot after every newly added peak (use a separate thread)
   - [ ] Plot results in GUI
@@ -20,6 +17,10 @@
 - [ ] Improve PSS_Calculator
   - [ ] Add feature to calculate ratio of Stable/Metastable isomers at any PSS
 
+## Completed ✓
+
 - [ ] Release Version 1.0.0
 
-## Completed ✓
+- [x] Create general module for handling of data
+- [x] SpectraFitter: Improve Auto Mode
+- [x] plotter_TDDFT: add options for GAMESS and OpenQP, among other things
