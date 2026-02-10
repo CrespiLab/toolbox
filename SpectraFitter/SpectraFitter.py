@@ -3,12 +3,16 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+from scipy.optimize import minimize_scalar
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtWidgets import (QFileDialog,
     QApplication, QMainWindow, 
 )
+
+import src.data_handling as DataHandling
+
 from SpectraFitter.tools.FitPekarianGaussianHybrid import iterative_pekaria_fit
 from SpectraFitter.tools.FitWorker_Auto_SingleSpectrum import FitWorker
 import SpectraFitter.tools.load_data as LoadData
@@ -24,7 +28,7 @@ def main():
             self.threshold_fraction = 0.001
             self.k_max = 10
             self.center_deviation_threshold = 100
-            self.manual_mode = True
+            self.manual_mode = False
             self.starting_peaks_string = ""
             self.starting_number_of_peaks = 8
             self.worker = None
@@ -414,7 +418,7 @@ def main():
             self.ax_res.clear()
             self.ax_res.plot(self.wavenumbers, residuals, color='red')
             self.ax_res.axhline(0, color='black', linestyle='--')
-            self.ax_res.set_title("Relative Residuals")
+            self.ax_res.set_title("Normalised Residuals")
             self.ax_res.invert_xaxis()
             
             self.canvas_fit.draw()
@@ -451,8 +455,8 @@ def main():
             self.ax_res.plot(self.wavenumbers, residuals, color='red')
             self.ax_res.axhline(0, color='black', linestyle='--')
             self.ax_res.set_xlabel("Wavenumber (cm⁻¹)")
-            self.ax_res.set_ylabel("Relative Residuals")
-            self.ax_res.set_title("Relative Residuals: (Exp - Fit) / max(Exp)")
+            self.ax_res.set_ylabel("Normalised Residuals")
+            self.ax_res.set_title("Normalised Residuals: (Exp - Fit) / max(Exp)")
             self.ax_res.invert_xaxis()
             
             self.canvas_fit.draw()
@@ -501,8 +505,6 @@ def main():
             fit_first = self.temp_fit_first
             fit_last = self.temp_fit_last
     
-            from scipy.optimize import minimize_scalar
-    
             fitted_matrix = []
             residual_matrix = []
     
@@ -536,15 +538,18 @@ def main():
                 df_fit[f'Fit_{i+1}'] = fitted_matrix[:, i]
                 df_resid[f'Residual_{i+1}'] = residual_matrix[:, i]
     
-            path_fit, _ = QFileDialog.getSaveFileName(self, "Save Fitted Spectra", "", "CSV Files (*.csv)")
-            if path_fit:
-                df_fit.to_csv(path_fit, index=False)
-                self.output_console.append(f"💾 Fitted spectra saved to {path_fit}")
-    
-            path_resid, _ = QFileDialog.getSaveFileName(self, "Save Residuals", "", "CSV Files (*.csv)")
-            if path_resid:
-                df_resid.to_csv(path_resid, index=False)
-                self.output_console.append(f"💾 Residuals saved to {path_resid}")
+            filepath, _ = QFileDialog.getSaveFileName(self, "Save Fitted Spectra and Residuals", "",
+                                                      "CSV, DAT Files (*.csv *dat);;All Files (*)")
+            if filepath:
+                try:
+                    path_fit = DataHandling.modify_filename(filepath, "AllFittedSpectra", ext='.csv')
+                    df_fit.to_csv(path_fit, index=False)
+                    self.output_console.append(f"💾 Fitted spectra saved to {path_fit}")
+                    path_resid = DataHandling.modify_filename(filepath, "AllResiduals", ext='.csv')
+                    df_resid.to_csv(path_resid, index=False)
+                    self.output_console.append(f"💾 Residuals saved to {path_resid}")
+                except Exception as e:
+                    self.output_console.append(f"FAILED to save fitted spectra and residuals: {e}.")
     
         def get_centers(self):
             centers_str = self.textEdit_centers.toPlainText()
@@ -564,27 +569,37 @@ def main():
             
             wavenumbers = LoadData.loaded_wavenumbers
 
-            path, _ = QFileDialog.getSaveFileName(self, "Save Fits", "", "CSV Files (*.csv)")
+            path, _ = QFileDialog.getSaveFileName(self, "Save Fits of First and Last Spectra", "",
+                                                  "CSV, DAT Files (*.csv *dat);;All Files (*)")
             if path:
-                df = pd.DataFrame({
-                    'Wavenumber': wavenumbers,
-                    'Fit_First': self.temp_fit_first,
-                    'Fit_Last': self.temp_fit_last
-                })
-                df.to_csv(path, index=False)
-                self.output_console.append(f"💾 First and last fits saved to {path}")            
-                return
+                try:
+                    df = pd.DataFrame({
+                        'Wavenumber': wavenumbers,
+                        'Fit_First': self.temp_fit_first,
+                        'Fit_Last': self.temp_fit_last
+                    })
+                        
+                    path_fit = DataHandling.modify_filename(path, "FirstLastFittedSpectra", ext='.csv')
+                    df.to_csv(path_fit, index=False)
+                    self.output_console.append(f"💾 First and last fits saved to {path_fit}")            
+                    return
+            
+                except Exception as e:
+                    self.output_console.append(f"FAILED to save first and last fits: {e}.")
+
+            ##!!! EVERYTHING BELOW CAN BE REMOVED I THINK??     
+            
             if LoadData.loaded_spectra is None:
                 self.output_console.append("❌ No full transient dataset loaded.")
                 return
-    
+            
             # spectra = LoadData.loaded_spectra.iloc[:, 2:].values
             spectra = LoadData.loaded_spectra
             v = wavenumbers
             fit_first = np.interp(v, v, self.temp_fit_first)
             fit_last = np.interp(v, v, self.temp_fit_last)
     
-            from scipy.optimize import minimize_scalar
+            # from scipy.optimize import minimize_scalar
     
             fitted_spectra = []
             weights = []
@@ -611,7 +626,7 @@ def main():
             for i, spec in enumerate(fitted_spectra):
                 df_out[f'Fit_{i+1}'] = spec
             df_out['Weights'] = weights
-    
+            
             path, _ = QFileDialog.getSaveFileName(self, "Save Weighted Fits", "", "CSV Files (*.csv)")
             if path:
                 df_out.to_csv(path, index=False)

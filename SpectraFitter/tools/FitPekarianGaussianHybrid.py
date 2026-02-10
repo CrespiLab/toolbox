@@ -108,6 +108,7 @@ def residual_driven_peak_finder(v, a, max_peaks, residual_threshold, k_max,
 
         if len(centers) == 0:
             initial_centers = [v[np.argmax(a)]]
+            ##!!! FIND PEAKS FIRST (SCIPY) AND START WITH CA. 5
         else:
             initial_centers = centers
 
@@ -122,7 +123,7 @@ def residual_driven_peak_finder(v, a, max_peaks, residual_threshold, k_max,
         interp_fit = interp1d(v_fit, a_fit, kind='linear', bounds_error=False, fill_value="extrapolate")
         residuals_absolute = a - interp_fit(v) ## difference between experimental Abs/epsilon and value from fit
         max_absorbance = np.max(np.abs(a))
-        residuals = (residuals_absolute) / max_absorbance ## residuals relative to maximum Abs
+        residuals = (residuals_absolute) / max_absorbance ## residuals normalised to maximum Abs
         max_residual = np.max(np.abs(residuals))
 
         if output_console:

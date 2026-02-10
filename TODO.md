@@ -12,10 +12,14 @@
 - [ ] Improve SpectraFitter:
   - [x] Improve Auto Mode
   - [ ] Run Manual Mode on a separate thread (like Auto Mode)
+  - [ ] Update plot after every newly added peak (use a separate thread)
   - [ ] Plot results in GUI
+  - [ ] Add option for baseline correction
   - [ ] Add option to exclude certain region of spectrum (consider it baseline)
 
 - [ ] Improve PSS_Calculator
   - [ ] Add feature to calculate ratio of Stable/Metastable isomers at any PSS
+
+- [ ] Release Version 1.0.0
 
 ## Completed ✓
