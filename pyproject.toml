@@ -58,6 +58,7 @@ packages = [
    "SpectraFitter",
    "PSS_Calculator",
    "molgeom",
-   "src"
+   "src",
+   "Epsilonator"
 ]
 

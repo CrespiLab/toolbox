@@ -18,13 +18,18 @@ METHOD 2 (to be done):
 import pandas as pd
 import numpy as np
 from scipy import stats
+from scipy.integrate import trapezoid
 # from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
 import error_propagation as ErrorPropagation
 
-# data_folder = r"FULLPATH\ExampleData" ## full path to ExampleData folder
+import src.process_spectra as ProcessSpectra
+import PSS_Calculator.tools.process_spectra as PSS_ProcessSpectra
+
+data_folder = r"ExampleData" ## data folder
+results_folder = r"ExampleResults" ## results folder
 
 #### CHOOSE ####
 PROCESSING="unprocessed"
@@ -54,7 +59,6 @@ datasets_orig = {}
 for i in data_files:
     datasets_orig[i] = import_data(data_folder, data_files[i])
 
-#%%
 def cut_spectrum(low, high, df):
     ''' slice between low nm and high nm'''
     df_cut = df.loc[(df['Wavelength [nm]'] > low) & (df['Wavelength [nm]'] < high)] 
@@ -63,8 +67,6 @@ def cut_spectrum(low, high, df):
 datasets = {}
 for df in datasets_orig:
     datasets[df] = cut_spectrum(320, 600, datasets_orig[df])
-
-# print(datasets)
 
 #%%
 fig = plt.figure(figsize=(12, 8), dpi=600, constrained_layout=True)
@@ -122,9 +124,13 @@ def lin_reg(x, y):
     -------
     
     '''
+    y = y[0] # turn into one-dimensional array
+    
     (slope, intercept, 
      r_value, p_value, std_err) = stats.linregress(x, y)
     regression_line = slope * x + intercept
+    slope = int(np.round(slope)) # round to integer
+    std_err = int(np.round(std_err)) # round to integer
     return slope, intercept, r_value, p_value, std_err, regression_line
      
 slopes = {} ## slopes of regression line (i.e. epsilon) of Abs_max of each pathlength for each dataset
@@ -142,7 +148,7 @@ for (df, ax) in zip(datasets, axesPoints_b):
     ax.set_title("y = ax + b")
     ax.scatter(conc_times_pathlength, maxesAbs[df])
     ax.plot(conc_times_pathlength, regression_line, 
-             color='darkorange', label = f"slope: {slopes[df]:.0f}"+r"$\pm$"f"{std_err_slopes[df]:.0f}"
+             color='darkorange', label = f"slope: {slopes[df]}"+r"$\pm$"f"{std_err_slopes[df]}"
              +"\n"+
              f"intercept: {intercept:.2f}\n"+
              r"R${^2}$"+f": {r_value**2:.2f}")
@@ -154,7 +160,13 @@ for (df, ax) in zip(datasets, axesPoints_b):
     
     ax.legend()
 
-plt.show()
+savefile_path = fr"{results_folder}/lin_reg"
+savefile_svg = savefile_path+".svg"
+savefile_png = savefile_path+".png"
+fig.savefig(savefile_svg,bbox_inches="tight")
+fig.savefig(savefile_png,bbox_inches="tight")
+
+# plt.show()
 
 #%% Epsilons spectra
 fig = plt.figure(figsize=(10, 8), dpi=600, constrained_layout=True)
@@ -284,13 +296,21 @@ plot_epsilons_errors(axEpsilons_avg_errors, 'Error_averaged',
                      title=f'Errors, averaged ({calc_type})', ylabel=r'$\Delta$ Epsilon',
                      df_name=epsilons_mean)
 
-plt.show()
+savefile_path = fr"{results_folder}/epsilons"
+savefile_svg = savefile_path+".svg"
+savefile_png = savefile_path+".png"
+fig.savefig(savefile_svg,bbox_inches="tight")
+fig.savefig(savefile_png,bbox_inches="tight")
+
+# plt.show()
+
+###### average epsilon at Abs_max obtained from slopes of three datasets ######
+# Epsilon_max_mean, Epsilon_max_error = ErrorPropagation.calc_final_mean(slopes, std_err_slopes, 
+#                                                verbose="Abs_max"
+#                                                )
+###############################################################################
 
 #%%
-##!!! NEXT STEPS
-## - implement into autoQY: run QY optimisation with average, average+pluserror, and average+minuserror
-## - write down how epsilon average and error are currently calculated
-## - offer alternative if possible (include whole spectra instead of Abs_max)
 
 
 def save_epsilons_averaged(folder, filename, 
@@ -316,21 +336,116 @@ save_epsilons_averaged(data_folder, "Epsilons_plus_minus_Error",
                        ['Wavelength [nm]', 'Epsilons_averaged', 'Epsilons_averaged_plus_error', 'Epsilons_averaged_minus_error'])
 
 #%%
-##!!! HOW TO OBTAIN average+uncertainty epsilons for Metastable spectrum?
 '''
 - use calculated average+error of Stable epsilons
 - calculate Metastable spectrum using PSS_Calculator
 - calculate Metastable error in the same way: relative to magnitude of Abs
 
+##!!! TO DO
+[ ] obtain uncertainties for metastable spectrum
+
 '''
+fig = plt.figure(figsize=(8, 4), dpi=600, constrained_layout=True)
+gs = gridspec.GridSpec(1, 2, figure=fig)
 
+fig.suptitle("Molar Absorptivity Spectrum of Metastable Isomer Calculated using Averaged Epsilon of Stable")
 
-#%% average epsilon at Abs_max obtained from slopes of three datasets
+ax1 = fig.add_subplot(gs[0, 0])
+ax2 = fig.add_subplot(gs[0, 1])
 
-# slopes_array = np.array(list(slopes.values()))
-# std_err_slopes_array = np.array(list(std_err_slopes.values()))
-Epsilon_max_mean, Epsilon_max_error = ErrorPropagation.calc_final_mean(slopes, std_err_slopes, 
-                                               verbose="Abs_max"
-                                               )
+def obtain_concentrations(wavelengths, absorbance_Stable, absorbance_PSS,
+                          epsilons_Stable, PSS_percentage_Stable):
+    ''' Calculate concentrations of Stable and Metastable isomers '''
+    init_conc_S = trapezoid(absorbance_Stable,
+                              x=wavelengths) / trapezoid(epsilons_Stable,
+                                                         x=wavelengths)
+    
+    PSS_fraction_S = float(PSS_percentage_Stable/100)
+    PSS_fraction_MS = 1-PSS_fraction_S
+    PSS_conc_S = PSS_fraction_S * init_conc_S
+    PSS_conc_MS = PSS_fraction_MS * init_conc_S
+    
+    print(f"init_conc_Stable: {init_conc_S}")
+    print(f"PSS fractions S/MS: {PSS_fraction_S}/{PSS_fraction_MS}")
+    print(f"PSS_conc_MS: {PSS_conc_MS}")
 
-#%%
+    return PSS_fraction_S, PSS_fraction_MS, init_conc_S, PSS_conc_S, PSS_conc_MS
+
+def obtain_metastable_epsilons(wavelengths, absorbance_Stable, absorbance_PSS,
+                          epsilons_S, PSS_percentage_Stable):
+    
+    (stable_fraction, metastable_fraction, 
+     init_conc_Stable, PSS_conc_S, PSS_conc_MS) = obtain_concentrations(wavelengths, 
+                                                            absorbance_Stable, absorbance_PSS,
+                                                            epsilons_S, PSS_percentage_Stable)
+    
+    (metastable_before_rescaling,
+     metastable_rescaled)= PSS_ProcessSpectra.calculate_metastable_spectrum(absorbance_Stable,
+                                                                        absorbance_PSS,
+                                                                        stable_fraction,
+                                                                        metastable_fraction)
+    epsilons_MS = metastable_rescaled / PSS_conc_MS
+                                                                            
+    return init_conc_Stable, PSS_conc_MS, metastable_before_rescaling, metastable_rescaled, epsilons_MS
+
+pss_filename = "Stable_PSS_Absorbance.csv"
+df_Stable_PSS = import_data(data_folder, pss_filename)
+####
+dict_to_metastable = {}
+
+## interpolate
+dict_to_metastable['Wavelengths'] = epsilons_mean["Wavelength [nm]"].values
+dict_to_metastable['Abs_Stable'] = ProcessSpectra.Interpolate_Spectra(dict_to_metastable['Wavelengths'],
+                                          df_Stable_PSS["Wavelength [nm]"].values,
+                                          df_Stable_PSS["Absorbance Stable"].values)
+dict_to_metastable['Abs_PSS'] = ProcessSpectra.Interpolate_Spectra(dict_to_metastable['Wavelengths'],
+                                       df_Stable_PSS["Wavelength [nm]"].values,
+                                       df_Stable_PSS["Absorbance PSS"].values)
+dict_to_metastable['Epsilon_Stable'] = epsilons_mean["Epsilons_averaged"]
+
+## calculate metastable spectrum
+(init_conc_S, PSS_conc_MS,
+ dict_to_metastable['Abs_Metastable_before_rescaling'],
+ dict_to_metastable['Abs_Metastable_rescaled'],
+ dict_to_metastable['Epsilon_Metastable']) = obtain_metastable_epsilons(dict_to_metastable['Wavelengths'],
+                                       dict_to_metastable['Abs_Stable'],
+                                       dict_to_metastable['Abs_PSS'],
+                                       dict_to_metastable['Epsilon_Stable'],
+                                       PSS_percentage_Stable=1) ##!!! INPUT CORRECT PSS % 
+
+for y in ['Abs_Stable','Abs_PSS','Abs_Metastable_before_rescaling','Abs_Metastable_rescaled']:
+    ax1.plot(dict_to_metastable['Wavelengths'], dict_to_metastable[y], label=y)
+
+ax1.plot(dict_to_metastable['Wavelengths'], 
+         dict_to_metastable['Epsilon_Stable']*init_conc_S,
+         label="Epsilon_Stable * conc_S",
+         linestyle='--')
+ax1.plot(dict_to_metastable['Wavelengths'], 
+         dict_to_metastable['Epsilon_Metastable']*PSS_conc_MS,
+         label="Epsilon_Metastable * PSS_conc_MS",
+         linestyle='--')
+
+ax1.legend()
+
+ax2.plot(dict_to_metastable['Wavelengths'], 
+         dict_to_metastable['Epsilon_Stable'],
+         label="Epsilon_Stable")
+ax2.plot(dict_to_metastable['Wavelengths'], 
+         dict_to_metastable['Epsilon_Metastable'],
+         label="Epsilon_Metastable")
+
+ax2.legend()
+
+savefile_path = fr"{results_folder}/metastable"
+savefile_svg = savefile_path+".svg"
+savefile_png = savefile_path+".png"
+fig.savefig(savefile_svg,bbox_inches="tight")
+fig.savefig(savefile_png,bbox_inches="tight")
+
+# plt.show()
+
+#%% ##! FINAL STEPS
+## - implement into autoQY: run QY optimisation with average, average+pluserror, and average+minuserror
+## - write down how epsilon average and error are currently calculated
+## - offer alternative if possible (include whole spectra instead of Abs_max)
+
