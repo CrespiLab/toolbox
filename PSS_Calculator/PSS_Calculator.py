@@ -5,11 +5,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5 import NavigationToolbar2QT as NavigationToolbar
 from PyQt5.QtWidgets import (QFileDialog,    
     # QMessageBox,
     QApplication, QMainWindow, 
 )
 import PSS_Calculator.tools.load_data as LoadData
+import PSS_Calculator.tools.process_spectra as ProcessSpectra
+
 from PSS_Calculator.UIs.MainWindow import Ui_MainWindow
 
 def main():
@@ -63,6 +66,8 @@ def main():
             ##!!! change to using class MplCanvas in separate .py
             self.fig_main, self.ax_main = plt.subplots(figsize=(8, 4))
             self.canvas_main = FigureCanvas(self.fig_main)
+            self.navigation = NavigationToolbar(self.canvas_main, self)
+            self.verticalLayout_Plot.addWidget(self.navigation)  # Add the toolbar at the top
             self.verticalLayout_Plot.addWidget(self.canvas_main)
             ############################################################
             self.output_console = self.textEdit_OutputConsole
@@ -301,17 +306,21 @@ def main():
                 return
             
             try:
+                stable_spectrum = self.processed_spectra['Stable']
                 PSS_spectrum = self.processed_spectra['PSS']
                 stable_fraction = self.stable_at_PSS_fraction
-                stable_spectrum = self.processed_spectra['Stable']
-                metastable_before_rescaling = PSS_spectrum - (stable_fraction * stable_spectrum)
-                self.calculated_spectra['Calculated_Metastable_before_rescaling'] = metastable_before_rescaling
-                
                 metastable_fraction = self.metastable_at_PSS_fraction
-                metastable_rescaled = metastable_before_rescaling / metastable_fraction
+
+                (metastable_before_rescaling,
+                 metastable_rescaled)= ProcessSpectra.calculate_metastable_spectrum(stable_spectrum,
+                                                                                    PSS_spectrum,
+                                                                                    stable_fraction,
+                                                                                    metastable_fraction)
+
+                self.calculated_spectra['Calculated_Metastable_before_rescaling'] = metastable_before_rescaling
                 self.calculated_spectra['Calculated_Metastable'] = metastable_rescaled
+
                 self.output_console.append("Calculation of Metastable spectrum successful")
-                
                 self.plot_spectra("calculated")
                 self.SaveButton_CalculatedMetastable.setEnabled(True)
                 
