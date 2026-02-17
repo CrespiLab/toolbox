@@ -49,6 +49,7 @@ tddftplotter = "plotter_TDDFT.UV_spectrum:main"
 spectrafitter_single = "SpectraFitter.SpectraFitter_single:main"
 spectrafitter = "SpectraFitter.SpectraFitter:main"
 psscalc = "PSS_Calculator.PSS_Calculator:main"
+average = "Averaging.averaging:main"
 
 [tool.setuptools]
 packages = [
@@ -59,6 +60,7 @@ packages = [
    "PSS_Calculator",
    "molgeom",
    "src",
-   "Epsilonator"
+   "Epsilonator",
+   "Averaging"
 ]
 

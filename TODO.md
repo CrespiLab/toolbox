@@ -17,10 +17,15 @@
 - [ ] Improve PSS_Calculator
   - [ ] Add feature to calculate ratio of Stable/Metastable isomers at any PSS
 
+- [ ] Improve Averaging
+	- [ ] Add Save feature
+	- [ ] Add Load feature
+
 ## Completed ✓
 
 - [ ] Release Version 1.0.0
 
+- [x] Add tool for averaging of values with uncertainties: various options for propagating the error
 - [x] Create general module for handling of data
 - [x] SpectraFitter: Improve Auto Mode
 - [x] plotter_TDDFT: add options for GAMESS and OpenQP, among other things

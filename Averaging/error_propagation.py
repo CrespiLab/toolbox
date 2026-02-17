@@ -80,7 +80,7 @@ def calc_final_mean(values, errors, calc_type='scaled', verbose=False):
     '''
     Parameters
     ----------
-    values : numpy array
+    values : numpy array ##!!! or Pandas Series or something
         DESCRIPTION.
     sigmas : numpy array
         DESCRIPTION.
@@ -93,39 +93,13 @@ def calc_final_mean(values, errors, calc_type='scaled', verbose=False):
      chi2_red, sigma_mean_scaled) = calc_weighted_mean(slopes_array, std_err_slopes_array)
 
     (simple_mean, sigma_simple) = calc_simple_mean(slopes_array, std_err_slopes_array)
-    
+
     #####################################################################
-    ################### Which type of mean and average ##################
-    
-    #################################
-    ## dependent on chi2_red: works for single mean and error values ##
-    # if chi2_red > 1:
-        # mean = weighted_mean
-        # error = sigma_mean_scaled
-    # else:
-        # mean = weighted_mean
-        # error = sigma_mean_internal
-    #################################
-    
-    ## user chooses (scaled is recommended)
-    
-    if calc_type=='scaled':
-        mean = weighted_mean
-        error = sigma_mean_scaled
-    elif calc_type=='internal':
-        mean = weighted_mean
-        error = sigma_mean_internal
-    elif calc_type=='simple':
-        mean = simple_mean
-        error = sigma_simple
-    
-    #####################################################################
-    
     if verbose==True:
         print("---- Weighted Mean ----")
         print(f"Mean = {weighted_mean:.4f}")
         print(f'Internal uncertainty = {sigma_mean_internal:.4f} ("error of weighted mean")')
-        print(f"Reduced chi-square = {chi2_red:.3f}")
+        print(f"Reduced chi-squared = {chi2_red:.3f}")
         print(f"Scaled uncertainty = {sigma_mean_scaled:.4f}")
         
         print("\n---- Simple Mean ----")
@@ -139,7 +113,29 @@ def calc_final_mean(values, errors, calc_type='scaled', verbose=False):
         print(f"- If χ²ᵥ > 1: x̄ _weighted ± scaled uncertainty\n {weighted_mean:.4f} ± {sigma_mean_scaled:.4f}")
         
         print(f"- If sigmas are uncertain: x̄ _normal ± Std dev / sqrt(n)\n {simple_mean:.4f} ± {sigma_simple:.4f}")
-    elif verbose=="Abs_max":
-        print(f"At Abs_max\nFinal Mean: {mean}\nFinal Error: {error}")
-        
-    return mean, error
+    # elif verbose=="Abs_max":
+    #     print(f"At Abs_max\nFinal Mean: {mean}\nFinal Error: {error}")
+    
+    #####################################################################
+    ################### Which type of mean and average ##################
+    if calc_type=='dependent': ## dependent on chi2_red: works for single mean and error values (i.e. calculated from a 1-dimensional array)
+        if chi2_red > 1:
+            mean = weighted_mean
+            error = sigma_mean_scaled
+        else:
+            mean = weighted_mean
+            error = sigma_mean_internal
+    #################################
+    elif calc_type=='scaled': ## recommended
+        mean = weighted_mean
+        error = sigma_mean_scaled
+        return mean, error, chi2_red
+    elif calc_type=='internal':
+        mean = weighted_mean
+        error = sigma_mean_internal
+        return mean, error, chi2_red
+    elif calc_type=='simple':
+        mean = simple_mean
+        error = sigma_simple
+        return mean, error, None
+    #####################################################################
