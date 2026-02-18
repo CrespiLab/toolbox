@@ -80,9 +80,9 @@ def calc_final_mean(values, errors, calc_type='scaled', verbose=False):
     '''
     Parameters
     ----------
-    values : numpy array ##!!! or Pandas Series or something
+    values : dictionary of numpy arrays
         DESCRIPTION.
-    sigmas : numpy array
+    sigmas : dictionary of numpy arrays
         DESCRIPTION.
     
     '''
