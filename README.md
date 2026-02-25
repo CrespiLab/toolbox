@@ -1,5 +1,5 @@
 # tools
-**February 5<sup>th</sup>, 2026**
+**February 25<sup>th</sup>, 2026**
 
 Package containing miscellaneous useful scripts:
 - QuickPlotAbs: quickly plot absorption spectra from ASCII files
@@ -9,6 +9,10 @@ Package containing miscellaneous useful scripts:
   -  reorient: perform rotational operations on geometries of molecules
 - SpectraFitter: fit Gaussian shapes to experimental spectra to obtain smooth curves useful for further processing
 - PSS_Calculator: retrieve absorption spectrum of metastable isomer from stable and PSS spectrum together with ratio at PSS
+- Epsilonator:
+  - calculate molar absorptivity spectrum (e.g., of Stable isomer) including uncertainties using data from multiple measurements
+  - calculate molar absorptivity spectrum including uncertainties of Metastable isomer using absorption spectrum and ratio at PSS.
+- Averaging: obtain average of values that include uncertainties
 
 # Installation
 ## Anaconda Powershell Prompt
@@ -45,4 +49,13 @@ spectrafitter
 To start the program, use the command:
 ```
 psscalc
+```
+
+## Epsilonator
+TBA
+
+## Averaging
+To start the program, use the command:
+```
+average
 ```
