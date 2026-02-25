@@ -253,6 +253,19 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+        MainWindow.setTabOrder(self.lineEdit_Value_1, self.lineEdit_Error_1)
+        MainWindow.setTabOrder(self.lineEdit_Error_1, self.lineEdit_Value_2)
+        MainWindow.setTabOrder(self.lineEdit_Value_2, self.lineEdit_Error_2)
+        MainWindow.setTabOrder(self.lineEdit_Error_2, self.lineEdit_Value_3)
+        MainWindow.setTabOrder(self.lineEdit_Value_3, self.lineEdit_Error_3)
+        MainWindow.setTabOrder(self.lineEdit_Error_3, self.Button_CalculateAverage)
+        MainWindow.setTabOrder(self.Button_CalculateAverage, self.Button_SaveResults)
+        MainWindow.setTabOrder(self.Button_SaveResults, self.DeleteButton_1)
+        MainWindow.setTabOrder(self.DeleteButton_1, self.DeleteButton_3)
+        MainWindow.setTabOrder(self.DeleteButton_3, self.loadButton_Values_Errors)
+        MainWindow.setTabOrder(self.loadButton_Values_Errors, self.Button_ClearAll)
+        MainWindow.setTabOrder(self.Button_ClearAll, self.DeleteButton_2)
+        MainWindow.setTabOrder(self.DeleteButton_2, self.textEdit_OutputConsole)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate

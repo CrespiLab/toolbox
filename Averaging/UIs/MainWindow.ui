@@ -638,6 +638,22 @@
    </property>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>lineEdit_Value_1</tabstop>
+  <tabstop>lineEdit_Error_1</tabstop>
+  <tabstop>lineEdit_Value_2</tabstop>
+  <tabstop>lineEdit_Error_2</tabstop>
+  <tabstop>lineEdit_Value_3</tabstop>
+  <tabstop>lineEdit_Error_3</tabstop>
+  <tabstop>Button_CalculateAverage</tabstop>
+  <tabstop>Button_SaveResults</tabstop>
+  <tabstop>DeleteButton_1</tabstop>
+  <tabstop>DeleteButton_3</tabstop>
+  <tabstop>loadButton_Values_Errors</tabstop>
+  <tabstop>Button_ClearAll</tabstop>
+  <tabstop>DeleteButton_2</tabstop>
+  <tabstop>textEdit_OutputConsole</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

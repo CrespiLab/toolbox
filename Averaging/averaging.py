@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
+import os
+import pandas as pd
 from PyQt5.QtWidgets import (QFileDialog,    
     # QMessageBox,
     QApplication, QMainWindow, 
@@ -33,18 +35,13 @@ def main():
         def initUI(self):
             self.loadButton_Values_Errors.clicked.connect(self.load_file)
 
-            # self.lineEdit_Value_1.textChanged.connect(self.update_values_errors)
-            # self.lineEdit_Value_2.textChanged.connect(self.update_values_errors)
-            # self.lineEdit_Value_3.textChanged.connect(self.update_values_errors)
-            # self.lineEdit_Error_1.textChanged.connect(self.update_values_errors)
-            # self.lineEdit_Error_2.textChanged.connect(self.update_values_errors)
-            # self.lineEdit_Error_3.textChanged.connect(self.update_values_errors)
-            
             ##!!! add code to allow addition of more fields in case of >3 values
             
             self.DeleteButton_1.clicked.connect(lambda: self.delete_values_errors(1))
             self.DeleteButton_2.clicked.connect(lambda: self.delete_values_errors(2))
             self.DeleteButton_3.clicked.connect(lambda: self.delete_values_errors(3))
+            
+            self.Button_ClearAll.clicked.connect(self.clear_data_all)
             
             self.Button_CalculateAverage.clicked.connect(self.calculate_average)
             
@@ -75,6 +72,9 @@ def main():
         def delete_values_errors(self, count):
             """"""
             try:
+                print("===delete_values_errors===")
+                print(f"self.values: {self.values}")
+                print(f"count: {count}")
                 if count not in self.values or self.errors:
                     self.output_console.append("Cannot remove: data does not exist.")
                     return
@@ -86,6 +86,9 @@ def main():
                 self.lineEdits_Errors[count].setText("")
             except Exception as e:
                 self.output_console.append(f"FAILED to delete data: {e}")
+
+        def clear_data_all(self):
+            print("TBA")
 
         ######### Checks, processing, updates ########################
         def obtain_values_errors(self):
@@ -208,28 +211,16 @@ def main():
                     self.output_console.append(f"Average with {calc_type} uncertainty: {results['Mean']:.4f} ± {results['Uncertainty']:.4f}")
 
         def save_results(self):
-            self.output_console.append(f"Save feature TBA")
-
-
-            # fullpath, _ = QFileDialog.getSaveFileName(self, "Save Calculated Metastable Spectrum", "",
-            #                                           "CSV Files (*.csv);;DAT Files (*.dat)")
-            # path = os.path.splitext(fullpath)[0]
-            # if path:
-            #     df = pd.DataFrame({
-            #         'Wavelength (nm)': wavelengths,
-            #         'Wavenumbers (cm-1)': wavenumbers,
-            #         'Stable': stable,
-            #         'PSS': pss,
-            #         f'Calculated Metastable (before re-scaling ({self.metastable_at_PSS_percent:.1f} pct))': metastable_before_rescaling,
-            #         'Calculated Metastable': metastable
-            #     })
-            #     df.drop('Wavenumbers (cm-1)', axis=1).to_csv(path+'.csv', sep=',', index=False) ## csv file (without Wavenumbers)
-            #     df.to_csv(path+'.dat', sep='\t', index=False) ## dat file (including Wavenumbers)
-
-            #     self.output_console.append(f"Calculated Metastable spectrum saved to {path}.csv and .dat")
-            # else:
-            #     self.output_console.append("Nothing was saved")
-            #     return
+            fullpath, _ = QFileDialog.getSaveFileName(self, "Save Calculated Averages and Uncertainties", "",
+                                                      "TXT Files (*.txt)")
+            path = os.path.splitext(fullpath)[0]
+            if path:
+                df = pd.DataFrame(self.results).T ## create dataframe from dictionary: type of averaging as index
+                df.to_csv(path+'.txt', sep='\t', index=True) ## tab-separated textfile
+                self.output_console.append(f"Calculated Averages and Uncertainties saved to {path}.txt")
+            else:
+                self.output_console.append("Nothing was saved")
+                return
 
 
     #########################################################
