@@ -17,14 +17,18 @@
 - [ ] Improve PSS_Calculator
   - [ ] Add feature to calculate ratio of Stable/Metastable isomers at any PSS
 
+- [ ] Improve Epsilonator
+	- [ ] Convert to command-line script for more convenient input of data
+	- [ ] Convert to GUI
+
 - [ ] Improve Averaging
-	- [ ] Add Save feature
 	- [ ] Add Load feature
 
 ## Completed ✓
 
 - [ ] Release Version 1.0.0
 
+- [x] Averaging: add Save feature
 - [x] Add tool for averaging of values with uncertainties: various options for propagating the error
 - [x] Create general module for handling of data
 - [x] SpectraFitter: Improve Auto Mode
