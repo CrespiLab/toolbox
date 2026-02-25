@@ -338,14 +338,11 @@ def save_df_epsilons(folder, filename,
     # ext=".csv"
     df.to_csv(rf"{folder}/{filename}.csv", index=False) ## comma-separated .csv file
     df.to_csv(rf"{folder}/{filename}.dat", sep='\t',index=False) ## tab-separated .dat file
-    
-save_df_epsilons(results_folder, "Epsilons_and_Error",
+
+#### SAVE calculated epsilons of Stable isomer ####
+save_df_epsilons(results_folder, "Stable_Epsilons_and_Error",
                        epsilons_mean, 
                        ['Wavelength [nm]','Epsilons_averaged', 'Error_averaged'])
-
-save_df_epsilons(results_folder, "Epsilons_plus_minus_Error",
-                       epsilons_mean, 
-                       ['Wavelength [nm]', 'Epsilons_averaged', 'Epsilons_averaged_plus_error', 'Epsilons_averaged_minus_error'])
 ###############################################################################
 #%% Calculate molar absorptivity spectrum of Metastable isomer
 '''
@@ -418,7 +415,7 @@ def obtain_metastable_epsilons(wavelengths, absorbance_Stable, absorbance_PSS,
 
 ###############################################################################
 ###############################################################################
-df_to_metastable = pd.DataFrame() ##!!! CHANGE NAME TO DF
+df_to_metastable = pd.DataFrame()
 
 ## interpolate
 df_to_metastable['Wavelength [nm]'] = epsilons_mean["Wavelength [nm]"] ## wavelengths Stable spectral data from epsilons calculation
@@ -479,8 +476,22 @@ ax3.legend()
 #######################################
 ################ SAVE #################
 #######################################
-save_df_epsilons(results_folder, "Metastable_Stable_epsilons_and_error",
+## full dataframe in one file
+save_df_epsilons(results_folder, "AllResults_epsilons_and_error",
                        df_to_metastable)
+
+## Stable epsilons: average; plus error; minus error
+save_df_epsilons(results_folder, "Stable_Epsilons_plusminus_Error",
+                       df_to_metastable, 
+                       ['Wavelength [nm]','EpsilonAvg_Stable', 
+                        'EpsilonPlusError_Stable', 'EpsilonMinusError_Stable'])
+
+## Metastable epsilons: average; plus error; minus error
+save_df_epsilons(results_folder, "Metastable_Epsilons_plusminus_Error",
+                       df_to_metastable, 
+                       ['Wavelength [nm]','EpsilonAvg_Metastable', 
+                        'EpsilonPlusError_Metastable', 'EpsilonMinusError_Metastable'])
+
 ################################
 savefile_path = fr"{results_folder}/metastable"
 savefile_svg = savefile_path+".svg"

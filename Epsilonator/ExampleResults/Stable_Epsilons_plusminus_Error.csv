@@ -1,4 +1,4 @@
-Wavelength [nm],Epsilons_averaged,Epsilons_averaged_plus_error,Epsilons_averaged_minus_error
+Wavelength [nm],EpsilonAvg_Stable,EpsilonPlusError_Stable,EpsilonMinusError_Stable
 320.109,1526.6838536440794,1557.647612403949,1495.7200948842096
 320.685,1490.6885326238848,1523.4413607097115,1457.9357045380582
 321.262,1476.0720153246054,1504.9671692210864,1447.1768614281245
