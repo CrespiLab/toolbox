@@ -8,6 +8,7 @@ Package containing miscellaneous useful scripts:
   -  molgeom: retrieve geometrical properties of molecules, e.g., obtain, distances, angles, and dihedral angles
   -  reorient: perform rotational operations on geometries of molecules
 - SpectraFitter: fit Gaussian shapes to experimental spectra to obtain smooth curves useful for further processing
+  - Inspired by this recent publication: N. Larina and V. Khodorkovsky, Analyzing experimental UV–vis spectra of conjugated molecules in solution: Pekarian function fit, *New J. Chem.*, **2025**, 49, 3937–3945, https://doi.org/10.1039/D4NJ05537C
 - PSS_Calculator: retrieve absorption spectrum of metastable isomer from stable and PSS spectrum together with ratio at PSS
 - Epsilonator:
   - calculate molar absorptivity spectrum (e.g., of Stable isomer) including uncertainties using data from multiple measurements
