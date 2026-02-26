@@ -13,6 +13,7 @@
   - [ ] Plot results in GUI
   - [ ] Add option for baseline correction
   - [ ] Add option to exclude certain region of spectrum (consider it baseline)
+  - [ ] Add option to use only Gaussian bands (no Pekarians)
 
 - [ ] Improve PSS_Calculator
   - [ ] Add feature to calculate ratio of Stable/Metastable isomers at any PSS
@@ -26,8 +27,8 @@
 
 ## Completed ✓
 
-- [ ] Release Version 1.0.0
 
+- [x] Release Version 1.0.0
 - [x] Averaging: add Save feature
 - [x] Add tool for averaging of values with uncertainties: various options for propagating the error
 - [x] Create general module for handling of data
